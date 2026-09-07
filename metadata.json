@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Remix: NEW 1 TravelOps Umroh OS",
+  "description": "A comprehensive SaaS platform for managing Umrah \u0026 Hajj travel agency operations, featuring a white-label system, multi-entity support, and a modern, Islamic-futuristic user interface.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

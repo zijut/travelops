@@ -1,0 +1,53 @@
+/* /index.css */
+:root {
+  /* Light Mode Defaults */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff; /* Surface */
+  --bg-card: #ffffff;
+  --bg-elevated: #ffffff;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e1;
+
+  --icon-primary: #334155;
+  --icon-secondary: #64748b;
+
+  --accent-primary: #059669; /* Emerald 600 */
+  --accent-secondary: #10b981; /* Emerald 500 */
+
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+}
+
+.dark {
+  /* Dark Mode Overrides */
+  --bg-primary: #020617;
+  --bg-secondary: #0f172a; /* Surface */
+  --bg-card: #111827;
+  --bg-elevated: #1e293b;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  --border-primary: rgba(255, 255, 255, 0.08);
+  --border-secondary: rgba(255, 255, 255, 0.15);
+
+  --icon-primary: #e2e8f0;
+  --icon-secondary: #94a3b8;
+
+  --accent-primary: #10b981;
+  --accent-secondary: #34d399;
+}
+
+/* Base style resets */
+html, body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
