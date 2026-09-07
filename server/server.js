@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import packageRoutes from './routes/packages.js';
@@ -13,12 +16,16 @@ import { readDB } from './db.js';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DIST_PATH = path.join(__dirname, '../dist');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable CORS for frontend Vite development
+// Enable CORS for frontend & external clients
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173'],
+  origin: true,
   credentials: true
 }));
 
@@ -58,13 +65,26 @@ app.use('/api/finance', financeRoutes);
 app.use('/api/visa', visaRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// Fallback 404 for undefined api routes
-app.use('/api', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: `API Route ${req.originalUrl} not found.`
+// If production build exists in dist, serve static assets
+if (fs.existsSync(DIST_PATH)) {
+  app.use(express.static(DIST_PATH));
+  
+  // SPA fallback for all non-api routes
+  app.get('*', (req, res, next) => {
+    if (req.originalUrl.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(DIST_PATH, 'index.html'));
   });
-});
+} else {
+  // Fallback 404 for undefined api routes
+  app.use('/api', (req, res) => {
+    res.status(404).json({
+      success: false,
+      message: `API Route ${req.originalUrl} not found.`
+    });
+  });
+}
 
 // Global error handler
 app.use((err, req, res, next) => {
