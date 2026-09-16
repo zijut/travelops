@@ -1,7 +1,15 @@
 import jwt from 'jsonwebtoken';
-import { findUserById } from '../db.js';
+import { findUserById, findUserByEmail } from '../db.js';
+
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'travelops-super-secret-jwt-key-2026-production';
+
+export const ROLES = {
+  SUPER_ADMIN: 'Super Admin',
+  TRAVEL_ADMIN: 'Travel Admin',
+  OPS_STAFF: 'Ops Staff',
+  FIELD_AGENT: 'Field Agent'
+};
 
 export function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -13,7 +21,7 @@ export function authenticateToken(req, res, next) {
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
-      return res.status(403).json({ success: false, message: 'Invalid or expired session token.' });
+      return res.status(401).json({ success: false, message: 'Invalid or expired session token.' });
     }
 
     const user = findUserById(decoded.id);
@@ -68,8 +76,8 @@ export function requireRole(...allowedRoles) {
     }
 
     const userRole = req.user.role;
-    // Super Admin has access to everything
-    if (userRole === 'Super Admin' || allowedRoles.includes(userRole)) {
+    // Super Admin has full administrative access across all endpoints
+    if (userRole === ROLES.SUPER_ADMIN || allowedRoles.includes(userRole)) {
       return next();
     }
 
@@ -79,3 +87,19 @@ export function requireRole(...allowedRoles) {
     });
   };
 }
+
+export function checkAgencyOwnership(req, itemAgencyEmail) {
+  if (!req.user) return false;
+  if (req.user.role === ROLES.SUPER_ADMIN) return true;
+  if (!itemAgencyEmail) return true;
+  if (itemAgencyEmail.toLowerCase() === req.user.email.toLowerCase()) return true;
+
+  const itemOwner = findUserByEmail(itemAgencyEmail);
+  if (itemOwner && itemOwner.agency && req.user.agency) {
+    return itemOwner.agency.trim().toLowerCase() === req.user.agency.trim().toLowerCase();
+  }
+
+  return false;
+}
+
+

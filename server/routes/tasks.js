@@ -1,6 +1,6 @@
 import express from 'express';
 import { readDB, writeDB, logAudit } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole, checkAgencyOwnership, ROLES } from '../middleware/auth.js';
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -11,8 +11,8 @@ router.get('/', (req, res) => {
     const db = readDB();
     let tasks = db.tasks || [];
 
-    if (req.user.role !== 'Super Admin') {
-      tasks = tasks.filter(t => !t.agencyEmail || t.agencyEmail.toLowerCase() === req.user.email.toLowerCase());
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
+      tasks = tasks.filter(t => checkAgencyOwnership(req, t.agencyEmail));
     }
 
     return res.json({ success: true, tasks });
@@ -22,8 +22,31 @@ router.get('/', (req, res) => {
   }
 });
 
-// POST /api/tasks
-router.post('/', (req, res) => {
+
+// GET /api/tasks/:id
+router.get('/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = readDB();
+    const task = (db.tasks || []).find(t => t.id === id);
+
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Task not found.' });
+    }
+
+    if (!checkAgencyOwnership(req, task.agencyEmail)) {
+      return res.status(403).json({ success: false, message: 'Access denied to this task.' });
+    }
+
+    return res.json({ success: true, task });
+  } catch (error) {
+    console.error('Error fetching task details:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch task details.' });
+  }
+});
+
+// POST /api/tasks - Super Admin, Travel Admin, Ops Staff ONLY
+router.post('/', requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN, ROLES.OPS_STAFF), (req, res) => {
   try {
     const { title, category, dueDate, completed, assignee, priority, description, subtasks, kloter } = req.body;
 
@@ -56,8 +79,8 @@ router.post('/', (req, res) => {
   }
 });
 
-// PUT /api/tasks/:id
-router.put('/:id', (req, res) => {
+// PUT /api/tasks/:id - Super Admin, Travel Admin, Ops Staff ONLY
+router.put('/:id', requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN, ROLES.OPS_STAFF), (req, res) => {
   try {
     const { id } = req.params;
     const db = readDB();
@@ -68,7 +91,12 @@ router.put('/:id', (req, res) => {
     }
 
     const current = db.tasks[index];
-    const updated = { ...current, ...req.body };
+    if (!checkAgencyOwnership(req, current.agencyEmail)) {
+      return res.status(403).json({ success: false, message: 'Access denied to update this task.' });
+    }
+
+    const { agencyEmail: _, ...allowedBody } = req.body;
+    const updated = { ...current, ...allowedBody, agencyEmail: current.agencyEmail || req.user.email };
     db.tasks[index] = updated;
     writeDB(db);
 
@@ -79,7 +107,7 @@ router.put('/:id', (req, res) => {
   }
 });
 
-// PATCH /api/tasks/:id/toggle
+// PATCH /api/tasks/:id/toggle - Super Admin, Travel Admin, Ops Staff, Field Agent
 router.patch('/:id/toggle', (req, res) => {
   try {
     const { id } = req.params;
@@ -88,6 +116,11 @@ router.patch('/:id/toggle', (req, res) => {
 
     if (index === -1) {
       return res.status(404).json({ success: false, message: 'Task not found.' });
+    }
+
+    const current = db.tasks[index];
+    if (!checkAgencyOwnership(req, current.agencyEmail)) {
+      return res.status(403).json({ success: false, message: 'Access denied to toggle this task.' });
     }
 
     db.tasks[index].completed = !db.tasks[index].completed;
@@ -100,8 +133,8 @@ router.patch('/:id/toggle', (req, res) => {
   }
 });
 
-// DELETE /api/tasks/:id
-router.delete('/:id', (req, res) => {
+// DELETE /api/tasks/:id - Super Admin & Travel Admin ONLY
+router.delete('/:id', requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN), (req, res) => {
   try {
     const { id } = req.params;
     const db = readDB();
@@ -109,6 +142,11 @@ router.delete('/:id', (req, res) => {
 
     if (index === -1) {
       return res.status(404).json({ success: false, message: 'Task not found.' });
+    }
+
+    const current = db.tasks[index];
+    if (!checkAgencyOwnership(req, current.agencyEmail)) {
+      return res.status(403).json({ success: false, message: 'Access denied to delete this task.' });
     }
 
     db.tasks.splice(index, 1);
@@ -122,3 +160,4 @@ router.delete('/:id', (req, res) => {
 });
 
 export default router;
+

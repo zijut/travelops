@@ -471,7 +471,7 @@ const Landing: React.FC = () => {
             <div className="hidden sm:flex items-center space-x-2">
               {currentUser ? (
                 <button
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate(currentUser.role === 'Jamaah' ? '/user/dashboard' : '/dashboard')}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-2 rounded-lg transition-all cursor-pointer shadow-xs"
                 >
                   {curr.ctaDashboard}
@@ -479,20 +479,29 @@ const Landing: React.FC = () => {
               ) : (
                 <>
                   <button
-                    onClick={() => navigate('/login')}
-                    className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-extrabold text-[10px] uppercase tracking-wider px-3 py-2 cursor-pointer"
+                    onClick={() => navigate('/login?portal=admin')}
+                    className="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-extrabold text-[10px] uppercase tracking-wider px-2.5 py-2 cursor-pointer flex items-center space-x-1"
                   >
-                    {curr.ctaLogin}
+                    <span>🏢</span>
+                    <span>Portal Admin</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/login?portal=jamaah')}
+                    className="bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-extrabold text-[10px] uppercase tracking-wider px-3 py-2 rounded-lg transition-all cursor-pointer flex items-center space-x-1"
+                  >
+                    <span>🕋</span>
+                    <span>Portal Jemaah</span>
                   </button>
                   <button
                     onClick={() => navigate('/register')}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] uppercase tracking-wider px-4 py-2.5 rounded-lg transition-all hover:shadow-lg hover:shadow-emerald-500/10 cursor-pointer"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-2 rounded-lg transition-all hover:shadow-lg hover:shadow-emerald-500/10 cursor-pointer"
                   >
                     {curr.navRegistrasi}
                   </button>
                 </>
               )}
             </div>
+
 
             {/* Mobile menu burger */}
             <button
@@ -607,10 +616,10 @@ const Landing: React.FC = () => {
           </p>
 
           {/* Double Call to Actions */}
-          <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+          <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-3.5">
             {currentUser ? (
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate(currentUser.role === 'Jamaah' ? '/user/dashboard' : '/dashboard')}
                 className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-black text-xs uppercase tracking-wider px-8 py-3.5 rounded-xl shadow-lg shadow-emerald-500/15 hover:scale-102 transition-all cursor-pointer"
               >
                 {curr.ctaDashboard}
@@ -618,21 +627,30 @@ const Landing: React.FC = () => {
             ) : (
               <>
                 <button
-                  onClick={() => navigate('/register')}
-                  className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-black text-xs uppercase tracking-wider px-8 py-3.5 rounded-xl shadow-lg shadow-emerald-500/15 hover:scale-102 transition-all cursor-pointer"
+                  onClick={() => navigate('/login?portal=admin')}
+                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider px-7 py-3.5 rounded-xl shadow-lg shadow-emerald-600/20 hover:scale-102 transition-all cursor-pointer flex items-center justify-center space-x-2"
                 >
-                  {curr.ctaRegister}
+                  <span>🏢</span>
+                  <span>Masuk Portal Admin</span>
                 </button>
                 <button
-                  onClick={() => navigate('/login')}
-                  className="w-full sm:w-auto bg-slate-200 hover:bg-slate-300 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-805 border border-slate-300/60 text-slate-800 dark:text-white font-black text-xs uppercase tracking-wider px-8 py-3.5 rounded-xl transition-all cursor-pointer"
+                  onClick={() => navigate('/login?portal=jamaah')}
+                  className="w-full sm:w-auto bg-gradient-to-r from-amber-600 to-emerald-600 hover:from-amber-700 hover:to-emerald-700 text-white font-black text-xs uppercase tracking-wider px-7 py-3.5 rounded-xl shadow-lg shadow-amber-600/20 hover:scale-102 transition-all cursor-pointer flex items-center justify-center space-x-2"
                 >
-                  {curr.ctaLogin}
+                  <span>🕋</span>
+                  <span>Masuk Portal Jemaah</span>
+                </button>
+                <button
+                  onClick={() => navigate('/register')}
+                  className="w-full sm:w-auto bg-slate-200 hover:bg-slate-300 dark:bg-slate-900 dark:border-slate-800 dark:hover:bg-slate-800 border border-slate-300/60 text-slate-800 dark:text-white font-black text-xs uppercase tracking-wider px-6 py-3.5 rounded-xl transition-all cursor-pointer"
+                >
+                  Daftar Akun Baru
                 </button>
               </>
             )}
           </div>
         </div>
+
 
           {/* HIGH-FIDELITY LIVE MODULES TELEMETRY HUB */}
           <div className="mt-20 text-left relative max-w-full">

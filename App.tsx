@@ -16,11 +16,26 @@ import Settings from './components/Settings';
 import Landing from './components/Landing';
 import Login from './components/Login';
 import Register from './components/Register';
+
+// User / Pilgrim Portal Components
+import { UserDashboard } from './components/user/UserDashboard';
+import { UserDocuments } from './components/user/UserDocuments';
+import { UserItinerary } from './components/user/UserItinerary';
+import { UserRoomAndBus } from './components/user/UserRoomAndBus';
+import { UserPayments } from './components/user/UserPayments';
+import { UserManasik } from './components/user/UserManasik';
+import { UserPackages } from './components/user/UserPackages';
+import { UserProfileView } from './components/user/UserProfileView';
+import { UserSidebar } from './components/user/UserSidebar';
+import { UserHeader } from './components/user/UserHeader';
+import { UserBottomBar } from './components/user/UserBottomBar';
+
 import { OpsTask } from './types';
 import { MOCK_TASKS } from './constants';
 import { useApp } from './AppContext';
 
 const pathToView: Record<string, string> = {
+  // Admin routes
   '/dashboard': 'Dashboard',
   '/paket': 'Paket & Penjualan',
   '/jamaah': 'Jamaah',
@@ -30,9 +45,20 @@ const pathToView: Record<string, string> = {
   '/laporan': 'Laporan',
   '/profile': 'Profile',
   '/settings': 'Settings',
+
+  // User / Pilgrim routes
+  '/user/dashboard': 'Ringkasan Perjalanan',
+  '/user/dokumen': 'Dokumen & Visa',
+  '/user/itinerary': 'Jadwal & Itinerary',
+  '/user/kamar-bus': 'Kamar & Kursi Bus',
+  '/user/pembayaran': 'Tagihan & Bukti Bayar',
+  '/user/manasik': 'Buku Doa & Manasik',
+  '/user/paket': 'Katalog Paket',
+  '/user/profil': 'Profil Jemaah',
 };
 
 const viewToPath: Record<string, string> = {
+  // Admin views
   'Dashboard': '/dashboard',
   'Paket & Penjualan': '/paket',
   'Jamaah': '/jamaah',
@@ -42,6 +68,16 @@ const viewToPath: Record<string, string> = {
   'Laporan': '/laporan',
   'Profile': '/profile',
   'Settings': '/settings',
+
+  // User views
+  'Ringkasan Perjalanan': '/user/dashboard',
+  'Dokumen & Visa': '/user/dokumen',
+  'Jadwal & Itinerary': '/user/itinerary',
+  'Kamar & Kursi Bus': '/user/kamar-bus',
+  'Tagihan & Bukti Bayar': '/user/pembayaran',
+  'Buku Doa & Manasik': '/user/manasik',
+  'Katalog Paket': '/user/paket',
+  'Profil Jemaah': '/user/profil',
 };
 
 const App: React.FC = () => {
@@ -49,16 +85,16 @@ const App: React.FC = () => {
   const navigate = useNavigate();
 
   // AppContext values
-  const { isDarkMode, toast, closeToast, currentUser, userProfile } = useApp();
+  const { isDarkMode, toast, closeToast, currentUser, userProfile, isAdmin, isJamaah, previewMode, setPreviewMode } = useApp();
 
-  const activeView = pathToView[location.pathname] || 'Dashboard';
+  const activeView = pathToView[location.pathname] || (isJamaah ? 'Ringkasan Perjalanan' : 'Dashboard');
 
   const setActiveView = (view: string) => {
-    const path = viewToPath[view] || '/dashboard';
+    const path = viewToPath[view] || (isJamaah ? '/user/dashboard' : '/dashboard');
     navigate(path);
   };
 
-  // Redirect and route guarding
+  // Route Guarding based on authentication and user roles
   useEffect(() => {
     const isPublicPath = ['/', '/login', '/register'].includes(location.pathname);
     
@@ -67,19 +103,32 @@ const App: React.FC = () => {
         navigate('/', { replace: true });
       }
     } else {
+      // Authenticated User Routing
       if (isPublicPath) {
-        navigate('/dashboard', { replace: true });
-      } else if (!pathToView[location.pathname]) {
-        navigate('/dashboard', { replace: true });
+        if (isJamaah) {
+          navigate('/user/dashboard', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
+      } else if (isJamaah) {
+        // If logged in as Jamaah but tries to access Admin route, redirect to User dashboard
+        if (!location.pathname.startsWith('/user/')) {
+          navigate('/user/dashboard', { replace: true });
+        }
+      } else if (isAdmin) {
+        // Admin user can navigate to admin routes or user preview routes
+        if (!pathToView[location.pathname]) {
+          navigate('/dashboard', { replace: true });
+        }
       }
     }
-  }, [location.pathname, currentUser, navigate]);
+  }, [location.pathname, currentUser, isJamaah, isAdmin, navigate]);
 
   const [isBotOpen, setIsBotOpen] = useState(false);
 
   const currentEmail = currentUser?.email || '';
 
-  // OpsCenter State (Lifted, user isolated)
+  // OpsCenter State (Admin isolated)
   const [opsTasks, setOpsTasks] = useState<OpsTask[]>(() => {
     if (!currentEmail) return [];
     const saved = localStorage.getItem(`travelops_ops_tasks_${currentEmail}`);
@@ -87,7 +136,6 @@ const App: React.FC = () => {
     return currentEmail === 'abdullah@alharamain.id' ? MOCK_TASKS : [];
   });
 
-  // Reload tasks when current user changes (e.g. after registration or logging in)
   useEffect(() => {
     if (currentEmail) {
       const saved = localStorage.getItem(`travelops_ops_tasks_${currentEmail}`);
@@ -97,7 +145,6 @@ const App: React.FC = () => {
     }
   }, [currentEmail]);
 
-  // Sync tasks to local storage
   useEffect(() => {
     if (currentEmail) {
       localStorage.setItem(`travelops_ops_tasks_${currentEmail}`, JSON.stringify(opsTasks));
@@ -115,11 +162,10 @@ const App: React.FC = () => {
     }
   }, [activeView]);
 
-  // Bot Command Handler
+  // Bot Command Handler (Admin)
   const handleBotCommand = (text: string): string => {
     const lowerText = text.toLowerCase();
     
-    // Command: Add Task
     if (lowerText.startsWith('add task') || lowerText.startsWith('create task')) {
       const title = text.replace(/add task|create task/i, '').trim();
       if (!title) return "Please specify a task title. E.g., 'Add task Buy Zamzam water'";
@@ -127,7 +173,7 @@ const App: React.FC = () => {
       const newTask: OpsTask = {
         id: Date.now().toString(),
         title: title,
-        category: 'Pre-Departure', // Default category
+        category: 'Pre-Departure',
         dueDate: new Date().toISOString().split('T')[0],
         completed: false,
         assignee: 'Bot',
@@ -142,7 +188,6 @@ const App: React.FC = () => {
       return `Task "${title}" added successfully to Pre-Departure checklist.`;
     }
 
-    // Command: Complete Task
     if (lowerText.startsWith('complete') || lowerText.startsWith('finish') || lowerText.startsWith('mark done')) {
       const search = text.replace(/complete|finish|mark done/i, '').trim();
       const taskIndex = opsTasks.findIndex(t => t.title.toLowerCase().includes(search.toLowerCase()));
@@ -157,7 +202,6 @@ const App: React.FC = () => {
       return `I couldn't find a task matching "${search}".`;
     }
 
-    // Command: Switch Kloter
     if (lowerText.includes('switch to kloter') || lowerText.includes('show kloter')) {
       if (lowerText.includes('kloter a')) {
         setOpsKloter('Kloter A');
@@ -177,7 +221,6 @@ const App: React.FC = () => {
       return "Please specify Kloter A, B, or C.";
     }
 
-    // Command: Status Report
     if (lowerText.includes('status') || lowerText.includes('report')) {
       const total = opsTasks.length;
       const completed = opsTasks.filter(t => t.completed).length;
@@ -185,14 +228,34 @@ const App: React.FC = () => {
     }
     
     if (lowerText.includes('hello') || lowerText.includes('hi')) {
-        return "Assalamualaikum! I can help you manage operations. Try 'Add task [name]', 'Complete [task]', or 'Show Kloter A'.";
+      return "Assalamualaikum! I can help you manage operations. Try 'Add task [name]', 'Complete [task]', or 'Show Kloter A'.";
     }
 
     return "I didn't quite get that. You can ask me to 'Add task', 'Complete task', or 'Switch to Kloter'.";
   };
 
+  // Render view based on activeView
   const renderView = () => {
     switch (activeView) {
+      // User / Pilgrim Views
+      case 'Ringkasan Perjalanan':
+        return <UserDashboard setActiveView={setActiveView} />;
+      case 'Dokumen & Visa':
+        return <UserDocuments />;
+      case 'Jadwal & Itinerary':
+        return <UserItinerary />;
+      case 'Kamar & Kursi Bus':
+        return <UserRoomAndBus />;
+      case 'Tagihan & Bukti Bayar':
+        return <UserPayments />;
+      case 'Buku Doa & Manasik':
+        return <UserManasik />;
+      case 'Katalog Paket':
+        return <UserPackages />;
+      case 'Profil Jemaah':
+        return <UserProfileView />;
+
+      // Admin Views
       case 'Dashboard':
         return <Dashboard />;
       case 'Paket & Penjualan':
@@ -220,11 +283,11 @@ const App: React.FC = () => {
       case 'Settings':
         return <Settings />;
       default:
-        return <Dashboard />;
+        return isJamaah ? <UserDashboard setActiveView={setActiveView} /> : <Dashboard />;
     }
   };
 
-  // Render public views if not authenticated
+  // Render public landing / login / register views if not authenticated
   if (!currentUser) {
     return (
       <div className={`min-h-screen w-full max-w-full overflow-x-hidden transition-colors duration-250 ${
@@ -238,9 +301,9 @@ const App: React.FC = () => {
           <Landing />
         )}
 
-        {/* Bilingual micro-feedback float toast */}
+        {/* Floating Toast Notification */}
         {toast && (
-          <div className={`fixed bottom-5 right-24 p-3 rounded-2xl shadow-2xl flex items-center space-x-3 max-w-sm border z-50 transition-all transform animate-slide-in-up ${
+          <div className={`fixed bottom-5 right-6 sm:right-10 p-3.5 rounded-2xl shadow-2xl flex items-center space-x-3 max-w-sm border z-50 transition-all transform animate-slide-in-up ${
             toast.type === 'error' 
               ? 'bg-rose-500 border-rose-600 text-white shadow-rose-500/15' 
               : toast.type === 'info'
@@ -248,19 +311,13 @@ const App: React.FC = () => {
                 : 'bg-emerald-600 border-emerald-700 text-white shadow-emerald-500/15'
           }`}>
             {toast.type === 'error' ? (
-              <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{ width: '20px', height: '20px' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
+              <span className="text-base shrink-0">⚠️</span>
             ) : (
-              <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{ width: '20px', height: '20px' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <span className="text-base shrink-0">✓</span>
             )}
             <span className="text-xs font-bold leading-tight">{toast.message}</span>
-            <button onClick={closeToast} className="text-white/85 hover:text-white hover:opacity-100 transition-opacity pl-1.5 shrink-0 cursor-pointer">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} style={{ width: '16px', height: '16px' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+            <button onClick={closeToast} className="text-white/85 hover:text-white pl-2 shrink-0 cursor-pointer font-bold">
+              ✕
             </button>
           </div>
         )}
@@ -268,6 +325,58 @@ const App: React.FC = () => {
     );
   }
 
+  // Determine if User / Pilgrim Layout or Admin Layout should be shown
+  const isUserView = isJamaah || location.pathname.startsWith('/user/');
+
+  // 1. USER / PILGRIM PORTAL LAYOUT
+  if (isUserView) {
+    return (
+      <div className={`h-screen w-full max-w-full overflow-hidden flex flex-col md:flex-row transition-colors duration-250 ${
+        isDarkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'
+      }`}>
+        {/* User Sidebar for Desktop */}
+        <div className="hidden md:flex h-screen shrink-0">
+          <UserSidebar activeView={activeView} setActiveView={setActiveView} />
+        </div>
+
+        {/* Main User Viewport */}
+        <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden pb-16 md:pb-0">
+          <UserHeader travelName={userProfile?.agency || 'Al-Haramain Travel'} setActiveView={setActiveView} />
+          <main ref={mainScrollRef} className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto overflow-x-hidden">
+            {renderView()}
+          </main>
+        </div>
+
+        {/* User Bottom Bar for Mobile */}
+        <div className="block md:hidden">
+          <UserBottomBar activeView={activeView} setActiveView={setActiveView} />
+        </div>
+
+        {/* Floating Toast Notification */}
+        {toast && (
+          <div className={`fixed bottom-5 right-6 sm:right-10 p-3.5 rounded-2xl shadow-2xl flex items-center space-x-3 max-w-sm border z-50 transition-all transform animate-slide-in-up ${
+            toast.type === 'error' 
+              ? 'bg-rose-500 border-rose-600 text-white shadow-rose-500/15' 
+              : toast.type === 'info'
+                ? 'bg-blue-600 border-blue-700 text-white shadow-blue-500/15'
+                : 'bg-emerald-600 border-emerald-700 text-white shadow-emerald-500/15'
+          }`}>
+            {toast.type === 'error' ? (
+              <span className="text-base shrink-0">⚠️</span>
+            ) : (
+              <span className="text-base shrink-0">✓</span>
+            )}
+            <span className="text-xs font-bold leading-tight">{toast.message}</span>
+            <button onClick={closeToast} className="text-white/85 hover:text-white pl-2 shrink-0 cursor-pointer font-bold">
+              ✕
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 2. ADMIN / OPERATIONAL OS LAYOUT
   return (
     <div className={`h-screen w-full max-w-full overflow-hidden flex flex-col md:flex-row transition-colors duration-250 ${
       isDarkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'
@@ -277,7 +386,7 @@ const App: React.FC = () => {
         <Sidebar activeView={activeView} setActiveView={setActiveView} />
       </div>
       
-      {/* Main viewport area with bottom padding on mobile for footer */}
+      {/* Main viewport area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden pb-16 md:pb-0">
         <Header travelName={userProfile?.agency || 'Al-Haramain Travel'} setActiveView={setActiveView} />
         <main ref={mainScrollRef} className="p-4 lg:p-6 flex-1 overflow-y-auto overflow-x-hidden">
@@ -297,9 +406,9 @@ const App: React.FC = () => {
         onCommand={handleBotCommand}
       />
 
-      {/* Bilingual micro-feedback float toast */}
+      {/* Floating Toast Notification */}
       {toast && (
-        <div className={`fixed bottom-5 right-24 p-3 rounded-2xl shadow-2xl flex items-center space-x-3 max-w-sm border z-50 transition-all transform animate-slide-in-up ${
+        <div className={`fixed bottom-5 right-6 sm:right-24 p-3.5 rounded-2xl shadow-2xl flex items-center space-x-3 max-w-sm border z-50 transition-all transform animate-slide-in-up ${
           toast.type === 'error' 
             ? 'bg-rose-500 border-rose-600 text-white shadow-rose-500/15' 
             : toast.type === 'info'
@@ -307,19 +416,13 @@ const App: React.FC = () => {
               : 'bg-emerald-600 border-emerald-700 text-white shadow-emerald-500/15'
         }`}>
           {toast.type === 'error' ? (
-            <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{ width: '20px', height: '20px' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+            <span className="text-base shrink-0">⚠️</span>
           ) : (
-            <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{ width: '20px', height: '20px' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <span className="text-base shrink-0">✓</span>
           )}
           <span className="text-xs font-bold leading-tight">{toast.message}</span>
-          <button onClick={closeToast} className="text-white/85 hover:text-white hover:opacity-100 transition-opacity pl-1.5 shrink-0 cursor-pointer">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} style={{ width: '16px', height: '16px' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <button onClick={closeToast} className="text-white/85 hover:text-white pl-2 shrink-0 cursor-pointer font-bold">
+            ✕
           </button>
         </div>
       )}

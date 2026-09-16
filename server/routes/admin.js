@@ -9,18 +9,20 @@ import {
   resetDB, 
   logAudit 
 } from '../db.js';
-import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { authenticateToken, requireRole, ROLES } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Middleware: all admin routes require authentication and admin/superadmin role
+// Middleware: all admin routes require authentication
 router.use(authenticateToken);
-router.use(requireRole('Super Admin', 'Travel Admin'));
 
-// GET /api/admin/users - Get all platform users
-router.get('/users', (req, res) => {
+// GET /api/admin/users - Get platform users (Super Admin gets all, Travel Admin gets own agency)
+router.get('/users', requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN), (req, res) => {
   try {
-    const users = getAllUsers();
+    let users = getAllUsers();
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
+      users = users.filter(u => u.agency === req.user.agency);
+    }
     return res.json({ success: true, users });
   } catch (error) {
     console.error('Error fetching admin users:', error);
@@ -28,13 +30,45 @@ router.get('/users', (req, res) => {
   }
 });
 
+// GET /api/admin/users/:id - Get user by ID
+router.get('/users/:id', requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN), (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = findUserById(id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    if (req.user.role !== ROLES.SUPER_ADMIN && user.agency !== req.user.agency) {
+      return res.status(403).json({ success: false, message: 'Access denied to user outside your agency.' });
+    }
+
+    const { password, ...userSafe } = user;
+    return res.json({ success: true, user: userSafe });
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    return res.status(500).json({ success: false, message: 'Failed to retrieve user details.' });
+  }
+});
+
 // POST /api/admin/users - Create new user from Admin Panel
-router.post('/users', (req, res) => {
+router.post('/users', requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN), (req, res) => {
   try {
     const { name, email, phone, password, role, agency, region, address, status } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ success: false, message: 'Name and email are required.' });
+    }
+
+    // Privilege escalation checks
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
+      if (role === ROLES.SUPER_ADMIN) {
+        return res.status(403).json({ success: false, message: 'Only Super Administrators can create Super Admin accounts.' });
+      }
+      if (role === ROLES.TRAVEL_ADMIN) {
+        return res.status(403).json({ success: false, message: 'Travel Admins cannot create other Travel Admin accounts.' });
+      }
     }
 
     const db = readDB();
@@ -43,13 +77,16 @@ router.post('/users', (req, res) => {
       return res.status(409).json({ success: false, message: 'User with this email already exists.' });
     }
 
+    const targetAgency = (req.user.role === ROLES.SUPER_ADMIN && agency) ? agency : req.user.agency;
+    const targetRole = role || ROLES.OPS_STAFF;
+
     const newUser = createUser({
       name,
       email,
       phone,
       password: password || 'TravelOps2026!',
-      role: role || 'Ops Staff',
-      agency: agency || req.user.agency || 'Travel Partner',
+      role: targetRole,
+      agency: targetAgency,
       region: region || 'Indonesia',
       address: address || '',
       status: status || 'Active'
@@ -76,27 +113,40 @@ router.post('/users', (req, res) => {
 });
 
 // PUT /api/admin/users/:id - Update user details, role, status, or password
-router.put('/users/:id', (req, res) => {
+router.put('/users/:id', requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN), (req, res) => {
   try {
     const { id } = req.params;
     const { name, email, phone, role, agency, region, address, status, password } = req.body;
 
-    const user = findUserById(id);
-    if (!user) {
+    const targetUser = findUserById(id);
+    if (!targetUser) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
-    // Guard: only Super Admin can modify Super Admin accounts
-    if (user.role === 'Super Admin' && req.user.role !== 'Super Admin') {
+    // Protection for Super Admin accounts
+    if (targetUser.role === ROLES.SUPER_ADMIN && req.user.role !== ROLES.SUPER_ADMIN) {
       return res.status(403).json({ success: false, message: 'Only Super Administrators can modify Super Admin accounts.' });
+    }
+
+    // Agency isolation for Travel Admin
+    if (req.user.role !== ROLES.SUPER_ADMIN && targetUser.agency !== req.user.agency) {
+      return res.status(403).json({ success: false, message: 'Access denied. User belongs to another agency.' });
+    }
+
+    // Privilege escalation prevention: setting role to Super Admin or modifying role by non-Super Admin
+    if (role === ROLES.SUPER_ADMIN && req.user.role !== ROLES.SUPER_ADMIN) {
+      return res.status(403).json({ success: false, message: 'Only Super Administrators can assign Super Admin role.' });
     }
 
     const updates = {};
     if (name) updates.name = name;
     if (email) updates.email = email.toLowerCase();
     if (phone !== undefined) updates.phone = phone;
-    if (role) updates.role = role;
-    if (agency) updates.agency = agency;
+    if (role && req.user.role === ROLES.SUPER_ADMIN) updates.role = role;
+    if (role && req.user.role !== ROLES.SUPER_ADMIN && [ROLES.OPS_STAFF, ROLES.FIELD_AGENT].includes(role)) {
+      updates.role = role;
+    }
+    if (agency && req.user.role === ROLES.SUPER_ADMIN) updates.agency = agency;
     if (region) updates.region = region;
     if (address !== undefined) updates.address = address;
     if (status) updates.status = status;
@@ -109,7 +159,7 @@ router.put('/users/:id', (req, res) => {
       userName: req.user.name,
       role: req.user.role,
       action: 'ADMIN_UPDATE_USER',
-      details: `Updated user account ${user.email} (Status: ${updatedUser.status}, Role: ${updatedUser.role}).`,
+      details: `Updated user account ${targetUser.email} (Status: ${updatedUser.status}, Role: ${updatedUser.role}).`,
       ipAddress: req.ip || '127.0.0.1'
     });
 
@@ -125,21 +175,25 @@ router.put('/users/:id', (req, res) => {
 });
 
 // DELETE /api/admin/users/:id - Delete a user
-router.delete('/users/:id', (req, res) => {
+router.delete('/users/:id', requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN), (req, res) => {
   try {
     const { id } = req.params;
-    const user = findUserById(id);
+    const targetUser = findUserById(id);
 
-    if (!user) {
+    if (!targetUser) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
-    if (user.id === req.user.id) {
+    if (targetUser.id === req.user.id) {
       return res.status(400).json({ success: false, message: 'You cannot delete your own account while logged in.' });
     }
 
-    if (user.role === 'Super Admin') {
+    if (targetUser.role === ROLES.SUPER_ADMIN) {
       return res.status(403).json({ success: false, message: 'Super Admin accounts cannot be deleted.' });
+    }
+
+    if (req.user.role !== ROLES.SUPER_ADMIN && targetUser.agency !== req.user.agency) {
+      return res.status(403).json({ success: false, message: 'Access denied. User belongs to another agency.' });
     }
 
     deleteUser(id);
@@ -149,19 +203,19 @@ router.delete('/users/:id', (req, res) => {
       userName: req.user.name,
       role: req.user.role,
       action: 'ADMIN_DELETE_USER',
-      details: `Deleted user account ${user.name} (${user.email}).`,
+      details: `Deleted user account ${targetUser.name} (${targetUser.email}).`,
       ipAddress: req.ip || '127.0.0.1'
     });
 
-    return res.json({ success: true, message: `User ${user.name} deleted successfully.` });
+    return res.json({ success: true, message: `User ${targetUser.name} deleted successfully.` });
   } catch (error) {
     console.error('Admin delete user error:', error);
     return res.status(500).json({ success: false, message: 'Failed to delete user.' });
   }
 });
 
-// GET /api/admin/stats - Telemetry and platform overview metrics
-router.get('/stats', (req, res) => {
+// GET /api/admin/stats - Telemetry and platform overview metrics (Super Admin ONLY)
+router.get('/stats', requireRole(ROLES.SUPER_ADMIN), (req, res) => {
   try {
     const db = readDB();
     const users = db.users || [];
@@ -220,8 +274,8 @@ router.get('/stats', (req, res) => {
   }
 });
 
-// GET /api/admin/audit-logs - Retrieve real-time system audit logs
-router.get('/audit-logs', (req, res) => {
+// GET /api/admin/audit-logs - Retrieve real-time system audit logs (Super Admin ONLY)
+router.get('/audit-logs', requireRole(ROLES.SUPER_ADMIN), (req, res) => {
   try {
     const db = readDB();
     const limit = parseInt(req.query.limit) || 100;
@@ -233,8 +287,8 @@ router.get('/audit-logs', (req, res) => {
   }
 });
 
-// POST /api/admin/reset-seeds - Restore demo dataset
-router.post('/reset-seeds', (req, res) => {
+// POST /api/admin/reset-seeds - Restore demo dataset (Super Admin ONLY)
+router.post('/reset-seeds', requireRole(ROLES.SUPER_ADMIN), (req, res) => {
   try {
     resetDB();
 
@@ -258,3 +312,4 @@ router.post('/reset-seeds', (req, res) => {
 });
 
 export default router;
+

@@ -1,6 +1,6 @@
 import express from 'express';
 import { readDB, writeDB, logAudit } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole, checkAgencyOwnership, ROLES } from '../middleware/auth.js';
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -11,8 +11,8 @@ router.get('/', (req, res) => {
     const db = readDB();
     let jamaah = db.jamaah || [];
 
-    if (req.user.role !== 'Super Admin') {
-      jamaah = jamaah.filter(j => !j.agencyEmail || j.agencyEmail.toLowerCase() === req.user.email.toLowerCase());
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
+      jamaah = jamaah.filter(j => checkAgencyOwnership(req, j.agencyEmail));
     }
 
     return res.json({ success: true, jamaah });
@@ -22,8 +22,31 @@ router.get('/', (req, res) => {
   }
 });
 
-// POST /api/jamaah
-router.post('/', (req, res) => {
+
+// GET /api/jamaah/:id
+router.get('/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = readDB();
+    const pilgrim = (db.jamaah || []).find(j => j.id === id);
+
+    if (!pilgrim) {
+      return res.status(404).json({ success: false, message: 'Pilgrim not found.' });
+    }
+
+    if (!checkAgencyOwnership(req, pilgrim.agencyEmail)) {
+      return res.status(403).json({ success: false, message: 'Access denied to this pilgrim record.' });
+    }
+
+    return res.json({ success: true, jamaah: pilgrim });
+  } catch (error) {
+    console.error('Error fetching pilgrim details:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch pilgrim details.' });
+  }
+});
+
+// POST /api/jamaah - Super Admin, Travel Admin, Ops Staff ONLY
+router.post('/', requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN, ROLES.OPS_STAFF), (req, res) => {
   try {
     const { name, phone, package: pkgName, departureDate, status, kloter, avatarUrl } = req.body;
 
@@ -32,7 +55,8 @@ router.post('/', (req, res) => {
     }
 
     const db = readDB();
-    const newId = `JMH${(db.jamaah.length + 1).toString().padStart(3, '0')}`;
+    const uniqueSuffix = Date.now().toString().slice(-4) + Math.floor(Math.random() * 10);
+    const newId = `JMH${uniqueSuffix}`;
     const newPilgrim = {
       id: newId,
       name,
@@ -76,8 +100,8 @@ router.post('/', (req, res) => {
   }
 });
 
-// PUT /api/jamaah/:id
-router.put('/:id', (req, res) => {
+// PUT /api/jamaah/:id - Super Admin, Travel Admin, Ops Staff ONLY
+router.put('/:id', requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN, ROLES.OPS_STAFF), (req, res) => {
   try {
     const { id } = req.params;
     const db = readDB();
@@ -88,7 +112,12 @@ router.put('/:id', (req, res) => {
     }
 
     const current = db.jamaah[index];
-    const updated = { ...current, ...req.body, updatedAt: new Date().toISOString() };
+    if (!checkAgencyOwnership(req, current.agencyEmail)) {
+      return res.status(403).json({ success: false, message: 'Access denied to update this pilgrim record.' });
+    }
+
+    const { agencyEmail: _, ...allowedBody } = req.body;
+    const updated = { ...current, ...allowedBody, agencyEmail: current.agencyEmail || req.user.email, updatedAt: new Date().toISOString() };
     db.jamaah[index] = updated;
     writeDB(db);
 
@@ -99,8 +128,8 @@ router.put('/:id', (req, res) => {
   }
 });
 
-// DELETE /api/jamaah/:id
-router.delete('/:id', (req, res) => {
+// DELETE /api/jamaah/:id - Super Admin & Travel Admin ONLY
+router.delete('/:id', requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN), (req, res) => {
   try {
     const { id } = req.params;
     const db = readDB();
@@ -108,6 +137,11 @@ router.delete('/:id', (req, res) => {
 
     if (index === -1) {
       return res.status(404).json({ success: false, message: 'Pilgrim not found.' });
+    }
+
+    const current = db.jamaah[index];
+    if (!checkAgencyOwnership(req, current.agencyEmail)) {
+      return res.status(403).json({ success: false, message: 'Access denied to delete this pilgrim record.' });
     }
 
     const deleted = db.jamaah.splice(index, 1)[0];
@@ -133,3 +167,4 @@ router.delete('/:id', (req, res) => {
 });
 
 export default router;
+

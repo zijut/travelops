@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../AppContext';
+import { packagesApi } from '../services/api';
 import { translations } from '../translations';
 import { PackageStatus, Package } from '../types';
 import { Icon } from './shared/Icon';
@@ -72,43 +73,51 @@ const PackageList: React.FC = () => {
     setIsAddEditOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim()) {
       triggerToast(language === 'id' ? 'Nama paket tidak boleh kosong!' : 'Package name is required!', 'error');
       return;
     }
 
+    const pkgData = {
+      name: formName,
+      duration: formDuration,
+      price: Number(formPrice),
+      airline: formAirline,
+      hotel: formHotel,
+      quota: Number(formQuota),
+      booked: Number(formBooked),
+      status: formStatus
+    };
+
     if (editingPackage) {
       // Edit logic
-      const updated = packages.map(p => p.id === editingPackage.id ? {
-        ...p,
-        name: formName,
-        duration: formDuration,
-        price: Number(formPrice),
-        airline: formAirline,
-        hotel: formHotel,
-        quota: Number(formQuota),
-        booked: Number(formBooked),
-        status: formStatus
-      } : p);
-      setPackages(updated);
+      try {
+        const res = await packagesApi.update(editingPackage.id, pkgData);
+        if (res.success && res.package) {
+          setPackages(packages.map(p => p.id === editingPackage.id ? res.package : p));
+        } else {
+          setPackages(packages.map(p => p.id === editingPackage.id ? { ...p, ...pkgData } : p));
+        }
+      } catch (err) {
+        setPackages(packages.map(p => p.id === editingPackage.id ? { ...p, ...pkgData } : p));
+      }
       triggerToast(t.toastEditPkg.replace('{name}', formName), 'success');
     } else {
       // Add logic
-      const newId = `PKG${String(packages.length + 1).padStart(2, '0')}`;
-      const newPkg: Package = {
-        id: newId,
-        name: formName,
-        duration: formDuration,
-        price: Number(formPrice),
-        airline: formAirline,
-        hotel: formHotel,
-        quota: Number(formQuota),
-        booked: Number(formBooked),
-        status: formStatus
-      };
-      setPackages([...packages, newPkg]);
+      try {
+        const res = await packagesApi.create(pkgData);
+        if (res.success && res.package) {
+          setPackages([res.package, ...packages]);
+        } else {
+          const newId = `PKG${String(packages.length + 1).padStart(2, '0')}`;
+          setPackages([{ id: newId, ...pkgData }, ...packages]);
+        }
+      } catch (err) {
+        const newId = `PKG${String(packages.length + 1).padStart(2, '0')}`;
+        setPackages([{ id: newId, ...pkgData }, ...packages]);
+      }
       triggerToast(t.toastAddPkg.replace('{name}', formName), 'success');
     }
     setIsAddEditOpen(false);
@@ -116,16 +125,26 @@ const PackageList: React.FC = () => {
   };
 
   // Copy Package Logic
-  const handleCopy = (pkg: Package) => {
-    const newId = `PKG${String(packages.length + 1).padStart(2, '0')}`;
-    const copiedPkg: Package = {
+  const handleCopy = async (pkg: Package) => {
+    const copyData = {
       ...pkg,
-      id: newId,
       name: `${pkg.name} (${language === 'id' ? 'Salinan' : 'Copy'})`,
       booked: 0,
       status: PackageStatus.DRAFT
     };
-    setPackages([...packages, copiedPkg]);
+
+    try {
+      const res = await packagesApi.create(copyData);
+      if (res.success && res.package) {
+        setPackages([res.package, ...packages]);
+      } else {
+        const newId = `PKG${String(packages.length + 1).padStart(2, '0')}`;
+        setPackages([{ ...copyData, id: newId }, ...packages]);
+      }
+    } catch (err) {
+      const newId = `PKG${String(packages.length + 1).padStart(2, '0')}`;
+      setPackages([{ ...copyData, id: newId }, ...packages]);
+    }
     triggerToast(t.toastCopyPkg.replace('{name}', pkg.name), 'success');
   };
 
@@ -134,8 +153,11 @@ const PackageList: React.FC = () => {
     setDeletingPackage(pkg);
   };
 
-  const executeDelete = () => {
+  const executeDelete = async () => {
     if (!deletingPackage) return;
+    try {
+      await packagesApi.delete(deletingPackage.id);
+    } catch (err) {}
     setPackages(packages.filter(p => p.id !== deletingPackage.id));
     triggerToast(t.toastDelPkg, 'success');
     setDeletingPackage(null);

@@ -4,6 +4,7 @@ import { Icon } from './shared/Icon';
 import { OpsTask, TaskCategory, TaskPriority, SubTask } from '../types';
 import { TEAM_MEMBERS } from '../constants';
 import { useApp } from '../AppContext';
+import { tasksApi } from '../services/api';
 
 interface OpsCenterProps {
   tasks: OpsTask[];
@@ -562,7 +563,7 @@ const OpsCenter: React.FC<OpsCenterProps> = ({
                       type="text"
                       value={newSubtaskTitle}
                       onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addSubtask(activeTask.id)}
+                      onKeyDown={(e) => e.key === 'Enter' && addSubtask(activeTask.id)}
                       placeholder={t.subtaskText}
                       className="flex-1 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 h-8 focus:ring-1 focus:ring-emerald-500 focus:outline-none text-slate-800 dark:text-white"
                     />

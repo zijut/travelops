@@ -1,9 +1,9 @@
 /**
  * TravelOps Central API Client Service
- * Connects frontend React components to the Express backend API.
+ * Connects frontend React components to the Laravel backend API.
  */
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api';
 
 // Helper to get authorization token
 function getAuthToken(): string | null {
@@ -27,9 +27,12 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('travelops_token');
+      }
       throw new Error(data.message || `Request failed with status ${response.status}`);
     }
 
@@ -45,10 +48,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 // ----------------------------------------------------
 export const authApi = {
   login: async (credentials: { email: string; password?: string }) => {
-    return request<{ success: boolean; message: string; token: string; user: any }>('/auth/login', {
+    const res = await request<{ success: boolean; message: string; token: string; user: any }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials)
     });
+    if (res.token) {
+      localStorage.setItem('travelops_token', res.token);
+    }
+    return res;
   },
 
   register: async (userData: {
@@ -61,10 +68,14 @@ export const authApi = {
     region?: string;
     address?: string;
   }) => {
-    return request<{ success: boolean; message: string; token: string; user: any }>('/auth/register', {
+    const res = await request<{ success: boolean; message: string; token: string; user: any }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData)
     });
+    if (res.token) {
+      localStorage.setItem('travelops_token', res.token);
+    }
+    return res;
   },
 
   getMe: async () => {
@@ -85,6 +96,8 @@ export const authApi = {
       });
     } catch (e) {
       // Ignored on logout
+    } finally {
+      localStorage.removeItem('travelops_token');
     }
   }
 };
@@ -95,6 +108,10 @@ export const authApi = {
 export const adminApi = {
   getUsers: async () => {
     return request<{ success: boolean; users: any[] }>('/admin/users');
+  },
+
+  getUserById: async (id: string) => {
+    return request<{ success: boolean; user: any }>(`/admin/users/${id}`);
   },
 
   createUser: async (userData: any) => {
@@ -140,6 +157,10 @@ export const packagesApi = {
     return request<{ success: boolean; packages: any[] }>('/packages');
   },
 
+  getById: async (id: string) => {
+    return request<{ success: boolean; package: any }>(`/packages/${id}`);
+  },
+
   create: async (pkgData: any) => {
     return request<{ success: boolean; package: any }>('/packages', {
       method: 'POST',
@@ -169,6 +190,10 @@ export const jamaahApi = {
     return request<{ success: boolean; jamaah: any[] }>('/jamaah');
   },
 
+  getById: async (id: string) => {
+    return request<{ success: boolean; jamaah: any }>(`/jamaah/${id}`);
+  },
+
   create: async (jamaahData: any) => {
     return request<{ success: boolean; jamaah: any }>('/jamaah', {
       method: 'POST',
@@ -196,6 +221,10 @@ export const jamaahApi = {
 export const tasksApi = {
   getAll: async () => {
     return request<{ success: boolean; tasks: any[] }>('/tasks');
+  },
+
+  getById: async (id: string) => {
+    return request<{ success: boolean; task: any }>(`/tasks/${id}`);
   },
 
   create: async (taskData: any) => {
@@ -233,6 +262,19 @@ export const financeApi = {
     return request<{ success: boolean; finance: any[] }>('/finance');
   },
 
+  getSummary: async () => {
+    return request<{
+      success: boolean;
+      summary: {
+        totalIncome: number;
+        totalExpense: number;
+        netBalance: number;
+        pendingTransactions: number;
+        completedTransactions: number;
+      }
+    }>('/finance/summary');
+  },
+
   create: async (txData: any) => {
     return request<{ success: boolean; transaction: any }>('/finance', {
       method: 'POST',
@@ -253,6 +295,10 @@ export const financeApi = {
 export const visaApi = {
   getAll: async () => {
     return request<{ success: boolean; visaRecords: Record<string, any> }>('/visa');
+  },
+
+  getByJamaahId: async (jamaahId: string) => {
+    return request<{ success: boolean; visaRecord: any }>(`/visa/${jamaahId}`);
   },
 
   update: async (jamaahId: string, visaData: any) => {

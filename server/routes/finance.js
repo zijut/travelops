@@ -1,9 +1,11 @@
 import express from 'express';
 import { readDB, writeDB, logAudit } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole, checkAgencyOwnership, ROLES } from '../middleware/auth.js';
 
 const router = express.Router();
 router.use(authenticateToken);
+// Restricted to Super Admin and Travel Admin ONLY (Ops Staff and Field Agent get 403 Forbidden)
+router.use(requireRole(ROLES.SUPER_ADMIN, ROLES.TRAVEL_ADMIN));
 
 // GET /api/finance
 router.get('/', (req, res) => {
@@ -11,14 +13,57 @@ router.get('/', (req, res) => {
     const db = readDB();
     let finance = db.finance || [];
 
-    if (req.user.role !== 'Super Admin') {
-      finance = finance.filter(f => !f.agencyEmail || f.agencyEmail.toLowerCase() === req.user.email.toLowerCase());
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
+      finance = finance.filter(f => checkAgencyOwnership(req, f.agencyEmail));
     }
 
     return res.json({ success: true, finance });
   } catch (error) {
     console.error('Error fetching finance ledger:', error);
     return res.status(500).json({ success: false, message: 'Failed to fetch finance ledger.' });
+  }
+});
+
+// GET /api/finance/summary
+router.get('/summary', (req, res) => {
+  try {
+    const db = readDB();
+    let finance = db.finance || [];
+
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
+      finance = finance.filter(f => checkAgencyOwnership(req, f.agencyEmail));
+    }
+
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+    let pendingTransactions = 0;
+    let completedTransactions = 0;
+
+    finance.forEach(tx => {
+      const amount = Number(tx.amount) || 0;
+      if (tx.status === 'COMPLETED') {
+        completedTransactions++;
+        if (tx.type === 'INCOME') totalIncome += amount;
+        if (tx.type === 'EXPENSE') totalExpense += amount;
+      } else if (tx.status === 'PENDING') {
+        pendingTransactions++;
+      }
+    });
+
+    return res.json({
+      success: true,
+      summary: {
+        totalIncome,
+        totalExpense,
+        netBalance: totalIncome - totalExpense,
+        pendingTransactions,
+        completedTransactions
+      }
+    });
+  } catch (error) {
+    console.error('Error calculating finance summary:', error);
+    return res.status(500).json({ success: false, message: 'Failed to calculate finance summary.' });
   }
 });
 
@@ -73,6 +118,11 @@ router.delete('/:id', (req, res) => {
       return res.status(404).json({ success: false, message: 'Transaction not found.' });
     }
 
+    const current = db.finance[index];
+    if (!checkAgencyOwnership(req, current.agencyEmail)) {
+      return res.status(403).json({ success: false, message: 'Access denied to delete this transaction.' });
+    }
+
     db.finance.splice(index, 1);
     writeDB(db);
 
@@ -84,3 +134,4 @@ router.delete('/:id', (req, res) => {
 });
 
 export default router;
+

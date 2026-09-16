@@ -321,7 +321,24 @@ const Header: React.FC<HeaderProps> = ({ travelName, setActiveView }) => {
                     </svg>
                     <span>{t.settingsMenu}</span>
                   </button>
+
+                  <button 
+                    onClick={() => {
+                      if (setActiveView) {
+                        setActiveView('Ringkasan Perjalanan');
+                      }
+                      triggerToast('Membuka Pratinjau Portal Jemaah...', 'info');
+                      setIsProfileOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 flex items-center space-x-2 rounded-lg text-emerald-600 dark:text-emerald-400 font-semibold ${
+                      isDarkMode ? 'hover:bg-emerald-950/40' : 'hover:bg-emerald-50'
+                    }`}
+                  >
+                    <span>🕋</span>
+                    <span>Lihat Portal Jemaah</span>
+                  </button>
                 </div>
+
 
                 <div className="py-1">
                   <button 

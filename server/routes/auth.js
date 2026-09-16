@@ -27,13 +27,23 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // Public registration can NEVER grant Super Admin
+    if (role === 'Super Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Registration as Super Admin is forbidden.'
+      });
+    }
+
+    const assignedRole = (role && ['Travel Admin', 'Ops Staff', 'Field Agent'].includes(role)) ? role : 'Travel Admin';
+
     const newUser = createUser({
       name,
       email,
       phone: phone || '',
       password,
       agency: agency || `${name} Group Travel`,
-      role: role || 'Travel Admin',
+      role: assignedRole,
       region: region || 'Indonesia & Saudi Arabia',
       address: address || `Kantor Pusat ${name}`
     });
@@ -162,13 +172,12 @@ router.get('/me', authenticateToken, (req, res) => {
 // PUT /api/auth/profile
 router.put('/profile', authenticateToken, (req, res) => {
   try {
-    const { name, phone, photo, agency, region, address, password } = req.body;
+    const { name, phone, photo, region, address, password } = req.body;
     const updates = {};
 
     if (name) updates.name = name;
     if (phone !== undefined) updates.phone = phone;
     if (photo) updates.photo = photo;
-    if (agency) updates.agency = agency;
     if (region) updates.region = region;
     if (address !== undefined) updates.address = address;
     if (password && password.trim().length >= 6) updates.password = password;

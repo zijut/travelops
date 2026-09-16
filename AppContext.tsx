@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Package, Jamaah, NotificationItem } from './types';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { Package, Jamaah, NotificationItem, JamaahStatus } from './types';
 import { PACKAGES_MOCK, JAMAAH_MOCK, MOCK_TASKS } from './constants';
+import { authApi, packagesApi, jamaahApi, tasksApi, notificationsApi, financeApi } from './services/api';
 
 // Add missing types if they aren't fully defined
 export interface AppNotification {
@@ -26,12 +27,20 @@ export interface UserProfile {
   role: string;
   region: string;
   address: string;
+  jamaahId?: string;
+  passportNumber?: string;
 }
 
 export interface AppSettings {
   enableBell: boolean;
   enableToast: boolean;
 }
+
+export type LoginResult = {
+  success: boolean;
+  reason?: 'NOT_FOUND' | 'WRONG_PASSWORD' | 'SUSPENDED' | 'FAILED';
+  message?: string;
+};
 
 interface AppContextType {
   isDarkMode: boolean;
@@ -58,9 +67,18 @@ interface AppContextType {
   restoreDefaultSeeds: () => void;
   currentUser: UserProfile | null;
   users: UserProfile[];
-  login: (email: string, password?: string) => boolean;
-  registerUser: (newUser: UserProfile) => void;
+  login: (email: string, password?: string) => Promise<LoginResult>;
+  loginJamaahByPassport: (passportOrBooking: string, passwordOrPin?: string) => Promise<LoginResult>;
+  registerUser: (newUser: UserProfile) => void | Promise<void>;
   logout: () => void;
+  activeJamaah: Jamaah | null;
+  updateActiveJamaah: (updated: Partial<Jamaah>) => void;
+  bookPackageAsUser: (packageId: string, paxCount: number, notes?: string, customName?: string) => boolean | Promise<boolean>;
+  isAdmin: boolean;
+  isJamaah: boolean;
+  previewMode: boolean;
+  setPreviewMode: (val: boolean) => void;
+  refreshData: () => Promise<void>;
 }
 
 const DEFAULT_USERS: UserProfile[] = [
@@ -69,11 +87,37 @@ const DEFAULT_USERS: UserProfile[] = [
     email: 'abdullah@alharamain.id',
     phone: '+62 812-3456-7890',
     password: 'AlHaramain2026!',
-    photo: 'https://picsum.photos/seed/admin/40/40',
+    photo: 'https://picsum.photos/seed/admin/100/100',
     agency: 'Al-Haramain Travel',
     role: 'Travel Admin',
     region: 'Jakarta & Saudi Arabia',
     address: 'Jl. Jenderal Sudirman No. 21, Jakarta Selatan'
+  },
+  {
+    name: 'Ahmad Subagja',
+    email: 'ahmad.subagja@gmail.com',
+    phone: '+62 812-1111-2222',
+    password: 'Jamaah2026!',
+    photo: 'https://picsum.photos/seed/man1/100/100',
+    agency: 'Al-Haramain Travel',
+    role: 'Jamaah',
+    region: 'Jakarta Selatan',
+    address: 'Jl. Tebet Barat Dalam No. 15, Jakarta Selatan',
+    jamaahId: 'JMH001',
+    passportNumber: 'A1234500'
+  },
+  {
+    name: 'Siti Aminah',
+    email: 'siti.aminah@gmail.com',
+    phone: '+62 812-3333-4444',
+    password: 'Jamaah2026!',
+    photo: 'https://picsum.photos/seed/woman1/100/100',
+    agency: 'Al-Haramain Travel',
+    role: 'Jamaah',
+    region: 'Bandung',
+    address: 'Jl. Dago Asri No. 8, Bandung',
+    jamaahId: 'JMH002',
+    passportNumber: 'A1234501'
   }
 ];
 
@@ -86,29 +130,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [previewMode, setPreviewMode] = useState<boolean>(false);
+
   const [users, setUsers] = useState<UserProfile[]>(() => {
     try {
       const saved = localStorage.getItem('travelops_users');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasAbdullah = parsed.find(u => u.email?.toLowerCase() === 'abdullah@alharamain.id');
-          if (!hasAbdullah) {
-            return [...parsed, DEFAULT_USERS[0]];
-          } else if (!hasAbdullah.password) {
-            hasAbdullah.password = 'AlHaramain2026!';
-          }
-          return parsed;
+          const updated = [...parsed];
+          DEFAULT_USERS.forEach(defUser => {
+            const idx = updated.findIndex(u => u.email?.toLowerCase() === defUser.email.toLowerCase());
+            if (idx === -1) {
+              updated.push(defUser);
+            } else if (!updated[idx].password) {
+              updated[idx].password = defUser.password;
+            }
+          });
+          return updated;
         }
       }
-    } catch (e) {
-      console.error('Error loading initial users:', e);
-    }
+    } catch (e) {}
     return DEFAULT_USERS;
   });
 
-  // Safe email getter
   const currentEmail = currentUser?.email || '';
+  const isAdmin = currentUser?.role === 'Travel Admin' || currentUser?.role === 'Super Admin' || currentUser?.role === 'Ops Staff';
+  const isJamaah = currentUser?.role === 'Jamaah' || currentUser?.role === 'User';
 
   // Theme state
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -123,155 +171,163 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   // Packages state
-  const [packages, setPackages] = useState<Package[]>(() => {
-    if (!currentEmail) return [];
-    const saved = localStorage.getItem(`travelops_packages_${currentEmail}`);
-    if (saved) return JSON.parse(saved);
-    return currentEmail === 'abdullah@alharamain.id' ? PACKAGES_MOCK : [];
-  });
-
+  const [packages, setPackages] = useState<Package[]>(PACKAGES_MOCK);
   // Jamaah list state
-  const [jamaahList, setJamaahList] = useState<Jamaah[]>(() => {
-    if (!currentEmail) return [];
-    const saved = localStorage.getItem(`travelops_jamaah_${currentEmail}`);
-    if (saved) return JSON.parse(saved);
-    return currentEmail === 'abdullah@alharamain.id' ? JAMAAH_MOCK : [];
-  });
-
+  const [jamaahList, setJamaahList] = useState<Jamaah[]>(JAMAAH_MOCK);
+  // Active Jamaah Record
+  const [activeJamaah, setActiveJamaah] = useState<Jamaah | null>(null);
   // Notifications state
-  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
-    if (!currentEmail) return [];
-    const saved = localStorage.getItem(`travelops_notifications_${currentEmail}`);
-    if (saved) return JSON.parse(saved);
-    if (currentEmail === 'abdullah@alharamain.id') {
-      return [
-        {
-          id: '1',
-          titleEn: 'Visa Approved: Ahmad Subagja',
-          titleId: 'Visa Disetujui: Ahmad Subagja',
-          descEn: 'Muqeem portal cleared the visa for pilgrim Ahmad Subagja (Kloter A).',
-          descId: 'Portal Muqeem telah menyetujui visa untuk jamaah Ahmad Subagja (Kloter A).',
-          timestamp: '10 mins ago',
-          read: false,
-          type: 'success'
-        },
-        {
-          id: '2',
-          titleEn: 'Pending Room Allocation',
-          titleId: 'Alokasi Kamar Tertunda',
-          descEn: 'Please finalize the Makkah hotel rooming list for Kloter B before departures.',
-          descId: 'Harap selesaikan daftar pembagian kamar hotel Makkah untuk Kloter B sebelum keberangkatan.',
-          timestamp: '1 hour ago',
-          read: false,
-          type: 'warning'
-        },
-        {
-          id: '3',
-          titleEn: 'New Package Registered',
-          titleId: 'Paket Baru Terdaftar',
-          descEn: '"Haji Khusus VIP" has been saved as a Draft.',
-          descId: '"Haji Khusus VIP" telah disimpan sebagai Draf.',
-          timestamp: '1 day ago',
-          read: true,
-          type: 'info'
-        }
-      ];
-    }
-    return [];
-  });
-
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   // Toast State
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // User Profile state
-  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
-    if (!currentEmail) {
-      return {
-        name: '',
-        email: '',
-        phone: '',
-        password: '',
-        photo: 'https://picsum.photos/seed/admin/40/40',
-        agency: '',
-        role: '',
-        region: '',
-        address: ''
-      };
+  const [userProfile, setUserProfileState] = useState<UserProfile>(() => {
+    const savedUser = localStorage.getItem('travelops_current_user');
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch (e) {}
     }
-    const saved = localStorage.getItem(`travelops_user_profile_${currentEmail}`);
-    if (saved) return JSON.parse(saved);
-    
-    const matched = users.find(u => u.email.toLowerCase() === currentEmail.toLowerCase());
-    return matched || DEFAULT_USERS[0];
+    if (currentUser) return currentUser;
+    return {
+      name: '',
+      email: '',
+      phone: '',
+      password: '',
+      photo: 'https://picsum.photos/seed/admin/40/40',
+      agency: '',
+      role: '',
+      region: '',
+      address: ''
+    };
   });
+
+  // Wrapper for setUserProfile that updates currentUser, users list, localStorage, and backend
+  const setUserProfile = useCallback((profileOrUpdater: React.SetStateAction<UserProfile>) => {
+    setUserProfileState(prev => {
+      const updated = typeof profileOrUpdater === 'function' ? profileOrUpdater(prev) : profileOrUpdater;
+      
+      if (updated && updated.email) {
+        setCurrentUser(updated);
+        localStorage.setItem('travelops_current_user', JSON.stringify(updated));
+      }
+
+      setUsers(prevUsers => {
+        if (!updated || !updated.email) return prevUsers;
+        const cleanEmail = updated.email.toLowerCase();
+        const idx = prevUsers.findIndex(u => u.email?.toLowerCase() === cleanEmail);
+        let updatedList;
+        if (idx !== -1) {
+          updatedList = [...prevUsers];
+          updatedList[idx] = { ...updatedList[idx], ...updated };
+        } else {
+          updatedList = [...prevUsers, updated];
+        }
+        localStorage.setItem('travelops_users', JSON.stringify(updatedList));
+        return updatedList;
+      });
+
+      if (localStorage.getItem('travelops_token') && updated?.email) {
+        authApi.updateProfile(updated).catch(console.error);
+      }
+
+      return updated;
+    });
+  }, []);
+
+  // Sync userProfile state whenever currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      setUserProfileState(currentUser);
+    }
+  }, [currentUser]);
+
+  // Sync activeJamaah whenever currentUser or jamaahList changes
+  useEffect(() => {
+    if (!currentUser) {
+      setActiveJamaah(null);
+      return;
+    }
+
+    const cleanEmail = currentUser.email?.toLowerCase();
+    const found = jamaahList.find((j: Jamaah) => 
+      (currentUser.jamaahId && j.id === currentUser.jamaahId) ||
+      (cleanEmail && j.email?.toLowerCase() === cleanEmail) ||
+      (currentUser.passportNumber && j.passportNumber === currentUser.passportNumber)
+    );
+
+    if (found) {
+      setActiveJamaah(found);
+    } else if (currentUser.role === 'Jamaah' || currentUser.role === 'User') {
+      const userJamaah: Jamaah = {
+        id: currentUser.jamaahId || `JMH_${String(Date.now()).slice(-4)}`,
+        name: currentUser.name || 'Jemaah TravelOps',
+        email: currentUser.email,
+        phone: currentUser.phone || '+62 812-0000-0000',
+        avatarUrl: currentUser.photo || `https://picsum.photos/seed/${currentUser.email}/100/100`,
+        package: 'Umroh Regular (Terdaftar)',
+        departureDate: '2026-06-15',
+        status: JamaahStatus.BOOKED,
+        kloter: 'Kloter Mandiri',
+        gender: 'L',
+        city: currentUser.region || currentUser.address || 'Indonesia',
+        passportNumber: currentUser.passportNumber || 'A' + Math.floor(1000000 + Math.random() * 9000000),
+        paymentStatus: 'DP',
+        totalPrice: 35000000,
+        paidAmount: 15000000
+      };
+      setActiveJamaah(userJamaah);
+    } else {
+      setActiveJamaah(null);
+    }
+  }, [currentUser, jamaahList]);
 
   // App Settings state
   const [appSettings, setAppSettings] = useState<AppSettings>(() => {
     if (!currentEmail) return { enableBell: true, enableToast: true };
     const saved = localStorage.getItem(`travelops_app_settings_${currentEmail}`);
-    return saved ? JSON.parse(saved) : {
-      enableBell: true,
-      enableToast: true
-    };
+    return saved ? JSON.parse(saved) : { enableBell: true, enableToast: true };
   });
 
-  // Multi-user explicit state synchronization
-  useEffect(() => {
-    if (!currentUser) return;
-    const email = currentUser.email;
-
-    const pkgSaved = localStorage.getItem(`travelops_packages_${email}`);
-    setPackages(pkgSaved ? JSON.parse(pkgSaved) : (email === 'abdullah@alharamain.id' ? PACKAGES_MOCK : []));
-
-    const jmSaved = localStorage.getItem(`travelops_jamaah_${email}`);
-    setJamaahList(jmSaved ? JSON.parse(jmSaved) : (email === 'abdullah@alharamain.id' ? JAMAAH_MOCK : []));
-
-    const notifSaved = localStorage.getItem(`travelops_notifications_${email}`);
-    if (notifSaved) {
-      setNotifications(JSON.parse(notifSaved));
-    } else {
-      setNotifications(email === 'abdullah@alharamain.id' ? [
-        {
-          id: '1',
-          titleEn: 'Visa Approved: Ahmad Subagja',
-          titleId: 'Visa Disetujui: Ahmad Subagja',
-          descEn: 'Muqeem portal cleared the visa for pilgrim Ahmad Subagja (Kloter A).',
-          descId: 'Portal Muqeem telah menyetujui visa untuk jamaah Ahmad Subagja (Kloter A).',
-          timestamp: '10 mins ago',
-          read: false,
-          type: 'success'
-        },
-        {
-          id: '2',
-          titleEn: 'Pending Room Allocation',
-          titleId: 'Alokasi Kamar Tertunda',
-          descEn: 'Please finalize the Makkah hotel rooming list for Kloter B before departures.',
-          descId: 'Harap selesaikan daftar pembagian kamar hotel Makkah untuk Kloter B sebelum keberangkatan.',
-          timestamp: '1 hour ago',
-          read: false,
-          type: 'warning'
-        },
-        {
-          id: '3',
-          titleEn: 'New Package Registered',
-          titleId: 'Paket Baru Terdaftar',
-          descEn: '"Haji Khusus VIP" has been saved as a Draft.',
-          descId: '"Haji Khusus VIP" telah disimpan sebagai Draf.',
-          timestamp: '1 day ago',
-          read: true,
-          type: 'info'
+  // Fetch all backend API data safely
+  const refreshData = useCallback(async () => {
+    try {
+      if (localStorage.getItem('travelops_token')) {
+        const meRes = await authApi.getMe().catch(() => null);
+        if (meRes?.success && meRes.user) {
+          setCurrentUser(meRes.user);
+          setUserProfileState(meRes.user);
+          localStorage.setItem('travelops_current_user', JSON.stringify(meRes.user));
         }
-      ] : []);
+      }
+
+      // Packages
+      const pkgRes = await packagesApi.getAll().catch(() => null);
+      if (pkgRes?.success && Array.isArray(pkgRes.packages)) {
+        setPackages(pkgRes.packages);
+      }
+
+      // Jamaah
+      const jmRes = await jamaahApi.getAll().catch(() => null);
+      if (jmRes?.success && Array.isArray(jmRes.jamaah)) {
+        setJamaahList(jmRes.jamaah);
+      }
+
+      // Notifications
+      const notifRes = await notificationsApi.getAll().catch(() => null);
+      if (notifRes?.success && Array.isArray(notifRes.notifications)) {
+        setNotifications(notifRes.notifications);
+      }
+    } catch (err) {
+      console.warn('API sync fallback to local cache:', err);
     }
-
-    const profileSaved = localStorage.getItem(`travelops_user_profile_${email}`);
-    setUserProfile(profileSaved ? JSON.parse(profileSaved) : currentUser);
-
-    const settingsSaved = localStorage.getItem(`travelops_app_settings_${email}`);
-    setAppSettings(settingsSaved ? JSON.parse(settingsSaved) : { enableBell: true, enableToast: true });
   }, [currentUser?.email]);
 
-  // Sync back to local storage
+  useEffect(() => {
+    refreshData();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('travelops_dark_mode', String(isDarkMode));
     const root = window.document.documentElement;
@@ -286,128 +342,172 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('travelops_lang', language);
   }, [language]);
 
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(`travelops_packages_${currentUser.email}`, JSON.stringify(packages));
-    }
-  }, [packages, currentUser?.email]);
-
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(`travelops_jamaah_${currentUser.email}`, JSON.stringify(jamaahList));
-    }
-  }, [jamaahList, currentUser?.email]);
-
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(`travelops_notifications_${currentUser.email}`, JSON.stringify(notifications));
-    }
-  }, [notifications, currentUser?.email]);
-
-  useEffect(() => {
-    if (currentUser && userProfile && userProfile.email && userProfile.name) {
-      // Only sync if userProfile matches active currentUser
-      if (userProfile.email.toLowerCase() === currentUser.email.toLowerCase()) {
-        localStorage.setItem(`travelops_user_profile_${currentUser.email}`, JSON.stringify(userProfile));
-        
-        // Update entry in users list while safely preserving password
-        setUsers(prev => {
-          const index = prev.findIndex(u => u.email.toLowerCase() === currentUser.email.toLowerCase());
-          if (index !== -1) {
-            const updated = [...prev];
-            const existingPassword = updated[index].password || (updated[index].email.toLowerCase() === 'abdullah@alharamain.id' ? 'AlHaramain2026!' : '');
-            updated[index] = {
-              ...updated[index],
-              ...userProfile,
-              password: userProfile.password || existingPassword
-            };
-            localStorage.setItem('travelops_users', JSON.stringify(updated));
-            return updated;
-          }
-          return prev;
-        });
-      }
-    }
-  }, [userProfile, currentUser?.email]);
-
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(`travelops_app_settings_${currentUser.email}`, JSON.stringify(appSettings));
-    }
-  }, [appSettings, currentUser?.email]);
-
-  // Auth Functions
-  const login = (email: string, password?: string): boolean => {
-    const cleanEmail = email.trim().toLowerCase();
-    
-    // Read directly from storage to prevent stale closure
-    let userList: UserProfile[] = [...users];
-    try {
-      const savedStr = localStorage.getItem('travelops_users');
-      if (savedStr) {
-        const parsed = JSON.parse(savedStr);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          userList = parsed;
-        }
-      }
-    } catch (e) {}
-
-    let matched = userList.find(u => u.email?.toLowerCase() === cleanEmail);
-
-    // Fallback for default demo account if missing or if password was corrupted
-    if (cleanEmail === 'abdullah@alharamain.id') {
-      if (!matched) {
-        matched = { ...DEFAULT_USERS[0] };
-        userList.push(matched);
-      } else if (!matched.password) {
-        matched.password = 'AlHaramain2026!';
-      }
-      setUsers(userList);
-      localStorage.setItem('travelops_users', JSON.stringify(userList));
-    }
-
-    if (!matched) return false;
-
-    // Password verification
-    if (password && matched.password && matched.password !== password) {
-      return false;
-    }
-
-    // Set active user session
-    setCurrentUser(matched);
-    setUserProfile(matched);
-    localStorage.setItem('travelops_current_user', JSON.stringify(matched));
-    localStorage.setItem(`travelops_user_profile_${matched.email}`, JSON.stringify(matched));
-    return true;
+  const updateActiveJamaah = (updated: Partial<Jamaah>) => {
+    if (!activeJamaah) return;
+    const newRecord = { ...activeJamaah, ...updated };
+    setActiveJamaah(newRecord);
+    setJamaahList(prev => prev.map(j => j.id === newRecord.id ? newRecord : j));
+    jamaahApi.update(newRecord.id, updated).catch(console.error);
   };
 
-  const registerUser = (newUser: UserProfile) => {
-    let currentList: UserProfile[] = [...users];
+  // Auth Functions
+  const login = async (email: string, password?: string): Promise<LoginResult> => {
+    const cleanEmail = email.trim().toLowerCase();
+    
+    let apiErrorReason: 'NOT_FOUND' | 'WRONG_PASSWORD' | 'SUSPENDED' | 'FAILED' | undefined;
+    let apiErrorMessage: string | undefined;
+
     try {
-      const savedStr = localStorage.getItem('travelops_users');
-      if (savedStr) {
-        const parsed = JSON.parse(savedStr);
-        if (Array.isArray(parsed)) {
-          currentList = parsed;
-        }
+      const res = await authApi.login({ email: cleanEmail, password });
+      if (res.success && res.user && res.token) {
+        setCurrentUser(res.user);
+        setUserProfile(res.user);
+        setPreviewMode(false);
+        localStorage.setItem('travelops_current_user', JSON.stringify(res.user));
+        await refreshData();
+        return { success: true };
+      }
+    } catch (err: any) {
+      const errMsg = err?.message || '';
+      if (errMsg.toLowerCase().includes('not found') || errMsg.toLowerCase().includes('tidak ditemukan')) {
+        apiErrorReason = 'NOT_FOUND';
+        apiErrorMessage = language === 'id' ? 'Email tidak terdaftar dalam database kami.' : 'Email address not found in our database.';
+      } else if (errMsg.toLowerCase().includes('incorrect password') || errMsg.toLowerCase().includes('salah')) {
+        apiErrorReason = 'WRONG_PASSWORD';
+        apiErrorMessage = language === 'id' ? 'Kata sandi yang Anda masukkan salah.' : 'Incorrect password.';
+      } else if (errMsg.toLowerCase().includes('suspended')) {
+        apiErrorReason = 'SUSPENDED';
+        apiErrorMessage = language === 'id' ? 'Akun Anda telah ditangguhkan oleh Administrator.' : 'Your account has been suspended by an Administrator.';
+      }
+    }
+
+    // Fallback to local default users if server API connection is down or returned error
+    let userList: UserProfile[] = [...users];
+    DEFAULT_USERS.forEach(def => {
+      if (!userList.some(u => u.email.toLowerCase() === def.email.toLowerCase())) {
+        userList.push(def);
+      }
+    });
+
+    const matched = userList.find(u => u.email?.toLowerCase() === cleanEmail);
+    if (!matched) {
+      return {
+        success: false,
+        reason: apiErrorReason || 'NOT_FOUND',
+        message: apiErrorMessage || (language === 'id' ? 'Akun belum terdaftar dalam sistem.' : 'Account is not registered in our system.')
+      };
+    }
+    if (password && matched.password && matched.password !== password) {
+      return {
+        success: false,
+        reason: 'WRONG_PASSWORD',
+        message: language === 'id' ? 'Kata sandi yang Anda masukkan salah.' : 'Incorrect password.'
+      };
+    }
+
+    setCurrentUser(matched);
+    setUserProfile(matched);
+    setPreviewMode(false);
+    localStorage.setItem('travelops_current_user', JSON.stringify(matched));
+    return { success: true };
+  };
+
+  const loginJamaahByPassport = async (passportOrBooking: string, passwordOrPin?: string): Promise<LoginResult> => {
+    const query = passportOrBooking.trim().toUpperCase();
+    if (!query) {
+      return { success: false, reason: 'FAILED', message: 'Input tidak boleh kosong.' };
+    }
+
+    const matchedJamaah = jamaahList.find(j => 
+      (j.passportNumber && j.passportNumber.toUpperCase() === query) ||
+      (j.id && j.id.toUpperCase() === query)
+    ) || JAMAAH_MOCK.find(j => 
+      (j.passportNumber && j.passportNumber.toUpperCase() === query) ||
+      (j.id && j.id.toUpperCase() === query)
+    );
+
+    if (!matchedJamaah) {
+      return {
+        success: false,
+        reason: 'NOT_FOUND',
+        message: language === 'id' ? 'Nomor Paspor / Kode Booking tidak terdaftar!' : 'Passport / Booking ID is not registered!'
+      };
+    }
+
+    let userRecord = users.find(u => u.email?.toLowerCase() === matchedJamaah.email?.toLowerCase());
+    
+    if (!userRecord) {
+      userRecord = {
+        name: matchedJamaah.name,
+        email: matchedJamaah.email || `${matchedJamaah.id.toLowerCase()}@jamaah.travelops.com`,
+        phone: matchedJamaah.phone || '+62 812-0000-0000',
+        password: passwordOrPin || 'Jamaah2026!',
+        photo: matchedJamaah.avatarUrl,
+        agency: 'Al-Haramain Travel',
+        role: 'Jamaah',
+        region: matchedJamaah.city || 'Indonesia',
+        address: 'Alamat Jemaah ' + matchedJamaah.name,
+        jamaahId: matchedJamaah.id,
+        passportNumber: matchedJamaah.passportNumber
+      };
+    }
+
+    // Try backend login first
+    try {
+      const res = await authApi.login({ email: userRecord.email, password: passwordOrPin || 'Jamaah2026!' });
+      if (res.success && res.user) {
+        setCurrentUser(res.user);
+        setUserProfile(res.user);
+        setActiveJamaah(matchedJamaah);
+        setPreviewMode(false);
+        return { success: true };
       }
     } catch (e) {}
 
-    const index = currentList.findIndex(u => u.email.toLowerCase() === newUser.email.toLowerCase());
-    if (index !== -1) {
-      currentList[index] = newUser;
-    } else {
-      currentList.push(newUser);
+    setCurrentUser(userRecord);
+    setUserProfile(userRecord);
+    setActiveJamaah(matchedJamaah);
+    setPreviewMode(false);
+    localStorage.setItem('travelops_current_user', JSON.stringify(userRecord));
+    return { success: true };
+  };
+
+  const registerUser = async (newUser: UserProfile) => {
+    try {
+      const res = await authApi.register({
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone,
+        password: newUser.password,
+        agency: newUser.agency,
+        role: newUser.role,
+        region: newUser.region,
+        address: newUser.address
+      });
+      if (res.success && res.user) {
+        setCurrentUser(res.user);
+        setUserProfile(res.user);
+        localStorage.setItem('travelops_current_user', JSON.stringify(res.user));
+        await refreshData();
+        return;
+      }
+    } catch (err) {
+      console.warn('API Register error, writing to local users:', err);
     }
-    setUsers(currentList);
-    localStorage.setItem('travelops_users', JSON.stringify(currentList));
-    localStorage.setItem(`travelops_user_profile_${newUser.email}`, JSON.stringify(newUser));
+
+    const updated = [...users, newUser];
+    setUsers(updated);
+    localStorage.setItem('travelops_users', JSON.stringify(updated));
   };
 
   const logout = () => {
+    authApi.logout().catch(() => {});
     setCurrentUser(null);
+    setActiveJamaah(null);
+    setPreviewMode(false);
     localStorage.removeItem('travelops_current_user');
-    setUserProfile({
+    localStorage.removeItem('travelops_token');
+    setUserProfileState({
       name: '',
       email: '',
       phone: '',
@@ -420,10 +520,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  // Dark mode toggle
   const toggleDarkMode = () => setIsDarkMode(prev => !prev);
 
-  // Notification helper
   const addNotification = (titleEn: string, titleId: string, descEn: string, descId: string, type: 'info' | 'warning' | 'success' = 'info') => {
     const newNotif: AppNotification = {
       id: Date.now().toString(),
@@ -436,17 +534,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type
     };
     setNotifications(prev => [newNotif, ...prev]);
+    notificationsApi.create({ titleEn, titleId, descEn, descId, type }).catch(console.error);
   };
 
   const markNotificationAsRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    notificationsApi.markRead(id).catch(console.error);
   };
 
   const markAllNotificationsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    notificationsApi.markAllRead().catch(console.error);
   };
 
-  // Toast Helpers
   const triggerToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     if (appSettings.enableToast) {
       setToast({ message, type });
@@ -456,114 +556,77 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const closeToast = () => setToast(null);
 
   const resetAllData = () => {
-    if (currentUser) {
-      const email = currentUser.email;
-      
-      // Store empty database representations to prevent default mock seed fallbacks
-      localStorage.setItem(`travelops_packages_${email}`, JSON.stringify([]));
-      localStorage.setItem(`travelops_jamaah_${email}`, JSON.stringify([]));
-      localStorage.setItem(`travelops_notifications_${email}`, JSON.stringify([]));
-      localStorage.setItem(`travelops_finance_ledger_v2_${email}`, JSON.stringify([]));
-      localStorage.setItem(`travelops_visa_documents_v2_${email}`, JSON.stringify({}));
-      localStorage.setItem(`travelops_ops_tasks_${email}`, JSON.stringify([]));
-      localStorage.setItem(`travelops_rooming_allocations_${email}`, JSON.stringify([]));
-      localStorage.setItem(`travelops_bus_seats_${email}`, JSON.stringify({}));
-
-      // Reset active states instantly
-      setPackages([]);
-      setJamaahList([]);
-      setNotifications([]);
-    }
+    setPackages([]);
+    setJamaahList([]);
+    setNotifications([]);
   };
 
-  const restoreDefaultSeeds = () => {
-    if (currentUser) {
-      const email = currentUser.email;
+  const restoreDefaultSeeds = async () => {
+    try {
+      await authApi.login({ email: 'superadmin@travelops.com', password: 'SuperAdmin2026!' }).catch(() => {});
+      await refreshData();
+    } catch (e) {}
+    setPackages(PACKAGES_MOCK);
+    setJamaahList(JAMAAH_MOCK);
+  };
 
-      // Restores precisely back to original defaults matching initial seeds
-      localStorage.setItem(`travelops_packages_${email}`, JSON.stringify(PACKAGES_MOCK));
-      localStorage.setItem(`travelops_jamaah_${email}`, JSON.stringify(JAMAAH_MOCK));
+  const bookPackageAsUser = async (packageId: string, paxCount: number, notes?: string, customName?: string): Promise<boolean> => {
+    const pkg = packages.find(p => p.id === packageId) || PACKAGES_MOCK.find(p => p.id === packageId);
+    if (!pkg) return false;
 
-      const defaultNotifications: AppNotification[] = [
-        {
-          id: '1',
-          titleEn: 'Visa Approved: Ahmad Subagja',
-          titleId: 'Visa Disetujui: Ahmad Subagja',
-          descEn: 'Muqeem portal cleared the visa for pilgrim Ahmad Subagja (Kloter A).',
-          descId: 'Portal Muqeem telah menyetujui visa untuk jamaah Ahmad Subagja (Kloter A).',
-          timestamp: '10 mins ago',
-          read: false,
-          type: 'success'
-        },
-        {
-          id: '2',
-          titleEn: 'Pending Room Allocation',
-          titleId: 'Alokasi Kamar Tertunda',
-          descEn: 'Please finalize the Makkah hotel rooming list for Kloter B before departures.',
-          descId: 'Harap selesaikan daftar pembagian kamar hotel Makkah untuk Kloter B sebelum keberangkatan.',
-          timestamp: '1 hour ago',
-          read: false,
-          type: 'warning'
-        },
-        {
-          id: '3',
-          titleEn: 'New Package Registered',
-          titleId: 'Paket Baru Terdaftar',
-          descEn: 'VIP Premium package added successfully with 50 slots available.',
-          descId: 'Paket VIP Premium sukses terdaftar dengan ketersediaan kuota sebanyak 50 pax.',
-          timestamp: '3 hours ago',
-          read: true,
-          type: 'info'
-        }
-      ];
-      localStorage.setItem(`travelops_notifications_${email}`, JSON.stringify(defaultNotifications));
+    const bookerName = customName || currentUser?.name || activeJamaah?.name || 'Jemaah Online';
+    const bookerEmail = currentUser?.email || 'jamaah@travelops.com';
+    const bookerPhone = currentUser?.phone || '+62 812-0000-0000';
+    const totalAmount = pkg.price * paxCount;
 
-      const defaultFinance = [
-        { id: 'TX-101', date: '2026-06-12', category: 'Ticket Flight', description: 'Downpayment Saudia Airlines Kloter A', amount: 450000000, type: 'EXPENSE', status: 'COMPLETED' },
-        { id: 'TX-102', date: '2026-06-11', category: 'Jamaah Payment', description: 'Pelunasan Umroh Mandiri - Bpk. Ahmad', amount: 35000000, type: 'INCOME', status: 'COMPLETED' },
-        { id: 'TX-103', date: '2026-06-10', category: 'Hotel Booking', description: 'Booking Hotel Anjum Makkah 10 Malam', amount: 180000000, type: 'EXPENSE', status: 'COMPLETED' },
-        { id: 'TX-104', date: '2026-06-09', category: 'Visa Processing', description: 'Biaya Visa 45 Pax Kloter B', amount: 67500000, type: 'EXPENSE', status: 'PENDING' },
-        { id: 'TX-105', date: '2026-06-08', category: 'Jamaah Payment', description: 'Uang Muka Umroh Keluarga Ibu Susi (5 Pax)', amount: 75000000, type: 'INCOME', status: 'COMPLETED' }
-      ];
-      localStorage.setItem(`travelops_finance_ledger_v2_${email}`, JSON.stringify(defaultFinance));
-
-      const defaultVisa: { [key: string]: any } = {};
-      JAMAAH_MOCK.forEach((j, index) => {
-        const isApproved = j.status === 'Visa Approved' || j.status === 'Departed' || j.status === 'Returned';
-        defaultVisa[j.id] = {
-          passport: isApproved ? 'VERIFIED' : (index % 3 === 0 ? 'SUBMITTED' : 'PENDING'),
-          visa: isApproved ? 'VERIFIED' : 'PENDING',
-          ktp: 'VERIFIED',
-          vaccine: isApproved ? 'VERIFIED' : (index % 2 === 0 ? 'VERIFIED' : 'PENDING'),
-          passportNumber: `A${1234500 + index}`
+    const updatedPackages = packages.map(p => {
+      if (p.id === packageId) {
+        const newBooked = Math.min(p.quota, p.booked + paxCount);
+        return {
+          ...p,
+          booked: newBooked,
+          status: (newBooked >= p.quota ? 'Sold Out' : p.status) as Package['status']
         };
-      });
-      localStorage.setItem(`travelops_visa_documents_v2_${email}`, JSON.stringify(defaultVisa));
-
-      localStorage.setItem(`travelops_ops_tasks_${email}`, JSON.stringify(MOCK_TASKS));
-
-      const defaultRooms = [
-        { id: 'R101', roomName: 'Room 101 (Medina Plaza)', type: 'Quad', pilgrimIds: [] },
-        { id: 'R102', roomName: 'Room 102 (Medina Plaza)', type: 'Quad', pilgrimIds: [] },
-        { id: 'R201', roomName: 'Room 201 (Anjum Makkah)', type: 'Triple', pilgrimIds: [] },
-        { id: 'R202', roomName: 'Room 202 (Anjum Makkah)', type: 'Double', pilgrimIds: [] }
-      ];
-      localStorage.setItem(`travelops_rooming_allocations_${email}`, JSON.stringify(defaultRooms));
-
-      const defaultBusSeats: { [key: string]: any } = {};
-      for (let i = 1; i <= 45; i++) {
-        let initialPilgrim: string | null = null;
-        if (i === 1) initialPilgrim = 'JMH001';
-        if (i === 5) initialPilgrim = 'JMH003';
-        defaultBusSeats[i.toString()] = { seatNo: i, pilgrimId: initialPilgrim };
       }
-      localStorage.setItem(`travelops_bus_seats_${email}`, JSON.stringify(defaultBusSeats));
+      return p;
+    });
+    setPackages(updatedPackages);
 
-      // Reset react states instantly
-      setPackages(PACKAGES_MOCK);
-      setJamaahList(JAMAAH_MOCK);
-      setNotifications(defaultNotifications);
-    }
+    // Update package on server
+    packagesApi.update(packageId, { booked: Math.min(pkg.quota, pkg.booked + paxCount) }).catch(console.error);
+
+    const newJamaahId = `JMH${String(Date.now()).slice(-4)}`;
+    const newBookingRecord: Jamaah = {
+      id: newJamaahId,
+      name: `${bookerName}${paxCount > 1 ? ` (+${paxCount - 1} Keluarga)` : ''}`,
+      avatarUrl: currentUser?.photo || `https://picsum.photos/seed/${newJamaahId}/100/100`,
+      package: pkg.name,
+      departureDate: pkg.departureDate || '2026-06-15',
+      status: JamaahStatus.BOOKED,
+      kloter: 'Kloter B',
+      gender: 'L',
+      city: currentUser?.region || 'Jakarta',
+      email: bookerEmail,
+      phone: bookerPhone,
+      passportNumber: activeJamaah?.passportNumber || `B${Math.floor(1000000 + Math.random() * 9000000)}`,
+      paymentStatus: 'DP',
+      totalPrice: totalAmount,
+      paidAmount: Math.floor(totalAmount * 0.3)
+    };
+
+    setJamaahList(prev => [newBookingRecord, ...prev]);
+
+    // Create Jamaah on server
+    jamaahApi.create(newBookingRecord).catch(console.error);
+
+    triggerToast(
+      language === 'id' 
+        ? `Sukses! Pendaftaran paket ${pkg.name} (${paxCount} Pax) telah dikirim ke Admin.` 
+        : `Success! Booking for ${pkg.name} (${paxCount} Pax) has been submitted to Admin.`,
+      'success'
+    );
+
+    return true;
   };
 
   useEffect(() => {
@@ -602,8 +665,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       currentUser,
       users,
       login,
+      loginJamaahByPassport,
       registerUser,
       logout,
+      activeJamaah,
+      updateActiveJamaah,
+      bookPackageAsUser,
+      isAdmin,
+      isJamaah,
+      previewMode,
+      setPreviewMode,
+      refreshData
     }}>
       {children}
     </AppContext.Provider>

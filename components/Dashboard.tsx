@@ -221,7 +221,7 @@ const Dashboard: React.FC = () => {
   
   // Calculate who is assigned to bus (either this selected kloter or all)
   const isAssigned = (pilgrimId: string) => {
-    return Object.values(busSeats).some(seat => seat.pilgrimId === pilgrimId);
+    return Object.values(busSeats).some((seat: { seatNo: number; pilgrimId: string | null }) => seat.pilgrimId === pilgrimId);
   };
 
   const unasignedPilgrims = pilgrimsInKloter.filter(p => !isAssigned(p.id));
@@ -249,7 +249,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const occupiedSeatsCount = Object.values(busSeats).filter(s => s.pilgrimId !== null).length;
+  const occupiedSeatsCount = Object.values(busSeats).filter((s: { seatNo: number; pilgrimId: string | null }) => s.pilgrimId !== null).length;
 
   return (
     <div className="space-y-4 font-sans animate-fade-in">

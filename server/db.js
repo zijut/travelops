@@ -459,9 +459,31 @@ export function deleteUser(id) {
   return true;
 }
 
+// Entity Lookup Helpers
+export function findPackageById(id) {
+  const db = readDB();
+  return (db.packages || []).find(p => p.id === id) || null;
+}
+
+export function findJamaahById(id) {
+  const db = readDB();
+  return (db.jamaah || []).find(j => j.id === id) || null;
+}
+
+export function findTaskById(id) {
+  const db = readDB();
+  return (db.tasks || []).find(t => t.id === id) || null;
+}
+
+export function findFinanceById(id) {
+  const db = readDB();
+  return (db.finance || []).find(f => f.id === id) || null;
+}
+
 // Reset database to initial seed
 export function resetDB() {
   const initial = getInitialSeeds();
   writeDB(initial);
   return initial;
 }
+

@@ -1,6 +1,6 @@
 import express from 'express';
 import { readDB, writeDB } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, checkAgencyOwnership, ROLES } from '../middleware/auth.js';
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -11,7 +11,7 @@ router.get('/', (req, res) => {
     const db = readDB();
     let notifications = db.notifications || [];
 
-    if (req.user.role !== 'Super Admin') {
+    if (req.user.role !== ROLES.SUPER_ADMIN) {
       notifications = notifications.filter(n => !n.agencyEmail || n.agencyEmail.toLowerCase() === req.user.email.toLowerCase());
     }
 
@@ -58,8 +58,13 @@ router.patch('/:id/read', (req, res) => {
     const notif = (db.notifications || []).find(n => n.id === id);
 
     if (notif) {
+      if (!checkAgencyOwnership(req, notif.agencyEmail)) {
+        return res.status(403).json({ success: false, message: 'Access denied to this notification.' });
+      }
       notif.read = true;
       writeDB(db);
+    } else {
+      return res.status(404).json({ success: false, message: 'Notification not found.' });
     }
 
     return res.json({ success: true, message: 'Notification marked as read.' });
@@ -76,7 +81,7 @@ router.patch('/read-all', (req, res) => {
     const email = req.user.email.toLowerCase();
 
     (db.notifications || []).forEach(n => {
-      if (req.user.role === 'Super Admin' || !n.agencyEmail || n.agencyEmail.toLowerCase() === email) {
+      if (req.user.role === ROLES.SUPER_ADMIN || !n.agencyEmail || n.agencyEmail.toLowerCase() === email) {
         n.read = true;
       }
     });
@@ -90,3 +95,4 @@ router.patch('/read-all', (req, res) => {
 });
 
 export default router;
+

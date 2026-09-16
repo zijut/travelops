@@ -70,9 +70,12 @@ if (fs.existsSync(DIST_PATH)) {
   app.use(express.static(DIST_PATH));
   
   // SPA fallback for all non-api routes
-  app.get('*', (req, res, next) => {
+  app.use((req, res, next) => {
     if (req.originalUrl.startsWith('/api')) {
-      return next();
+      return res.status(404).json({
+        success: false,
+        message: `API Route ${req.originalUrl} not found.`
+      });
     }
     res.sendFile(path.join(DIST_PATH, 'index.html'));
   });

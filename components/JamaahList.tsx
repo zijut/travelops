@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../AppContext';
+import { jamaahApi } from '../services/api';
 import { translations } from '../translations';
 import { JamaahStatus, Jamaah } from '../types';
 import { Icon } from './shared/Icon';
@@ -77,40 +78,52 @@ const JamaahList: React.FC = () => {
     setIsAddEditOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim()) {
       triggerToast(language === 'id' ? 'Nama jamaah tidak boleh kosong!' : 'Pilgrim name is required!', 'error');
       return;
     }
 
+    const jamData = {
+      name: formName,
+      package: formPackage,
+      kloter: formKloter,
+      departureDate: formDeparture,
+      status: formStatus
+    };
+
     if (editingJamaah) {
       // Edit Logic
-      const updated = jamaahList.map(j => j.id === editingJamaah.id ? {
-        ...j,
-        name: formName,
-        package: formPackage,
-        kloter: formKloter,
-        departureDate: formDeparture,
-        status: formStatus
-      } : j);
-      setJamaahList(updated);
+      try {
+        const res = await jamaahApi.update(editingJamaah.id, jamData);
+        if (res.success && res.jamaah) {
+          setJamaahList(jamaahList.map(j => j.id === editingJamaah.id ? res.jamaah : j));
+        } else {
+          setJamaahList(jamaahList.map(j => j.id === editingJamaah.id ? { ...j, ...jamData } : j));
+        }
+      } catch (err) {
+        setJamaahList(jamaahList.map(j => j.id === editingJamaah.id ? { ...j, ...jamData } : j));
+      }
       triggerToast(t.toastEditJam.replace('{name}', formName), 'success');
     } else {
       // Add Logic
-      const newId = `JMH${String(jamaahList.length + 1).padStart(3, '0')}`;
-      const randomSeed = Math.floor(Math.random() * 100);
-      const gender = randomSeed % 2 === 0 ? 'man' : 'woman';
-      const newJam: Jamaah = {
-        id: newId,
-        name: formName,
-        avatarUrl: `https://picsum.photos/seed/${gender}${randomSeed}/40/40`,
-        package: formPackage,
-        kloter: formKloter,
-        departureDate: formDeparture,
-        status: formStatus
-      };
-      setJamaahList([...jamaahList, newJam]);
+      try {
+        const res = await jamaahApi.create(jamData);
+        if (res.success && res.jamaah) {
+          setJamaahList([res.jamaah, ...jamaahList]);
+        } else {
+          const newId = `JMH${String(jamaahList.length + 1).padStart(3, '0')}`;
+          const randomSeed = Math.floor(Math.random() * 100);
+          const gender = randomSeed % 2 === 0 ? 'man' : 'woman';
+          setJamaahList([{ id: newId, avatarUrl: `https://picsum.photos/seed/${gender}${randomSeed}/40/40`, ...jamData }, ...jamaahList]);
+        }
+      } catch (err) {
+        const newId = `JMH${String(jamaahList.length + 1).padStart(3, '0')}`;
+        const randomSeed = Math.floor(Math.random() * 100);
+        const gender = randomSeed % 2 === 0 ? 'man' : 'woman';
+        setJamaahList([{ id: newId, avatarUrl: `https://picsum.photos/seed/${gender}${randomSeed}/40/40`, ...jamData }, ...jamaahList]);
+      }
       triggerToast(t.toastAddJam.replace('{name}', formName), 'success');
     }
     setIsAddEditOpen(false);
@@ -138,8 +151,11 @@ const JamaahList: React.FC = () => {
     setDeletingJamaah(jam);
   };
 
-  const executeDelete = () => {
+  const executeDelete = async () => {
     if (!deletingJamaah) return;
+    try {
+      await jamaahApi.delete(deletingJamaah.id);
+    } catch (err) {}
     setJamaahList(jamaahList.filter(j => j.id !== deletingJamaah.id));
     triggerToast(t.toastDelJam, 'success');
     setDeletingJamaah(null);

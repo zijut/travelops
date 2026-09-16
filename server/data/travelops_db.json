@@ -13,7 +13,7 @@
       "address": "Sudirman Central Business District (SCBD) Lot 28, Jakarta",
       "status": "Active",
       "createdAt": "2026-01-01T00:00:00.000Z",
-      "lastLogin": "2026-09-03T06:03:04.419Z"
+      "lastLogin": "2026-09-15T07:38:45.221Z"
     },
     {
       "id": "usr_abdullah",
@@ -28,7 +28,7 @@
       "address": "Jl. Jenderal Sudirman No. 21, Jakarta Selatan",
       "status": "Active",
       "createdAt": "2026-01-15T00:00:00.000Z",
-      "lastLogin": "2026-09-03T06:02:55.538Z"
+      "lastLogin": "2026-09-16T02:58:20.991Z"
     },
     {
       "id": "usr_siti",
@@ -43,7 +43,7 @@
       "address": "Terminal 3 International, Soekarno-Hatta",
       "status": "Active",
       "createdAt": "2026-02-01T00:00:00.000Z",
-      "lastLogin": "2026-09-03T05:54:33.748Z"
+      "lastLogin": "2026-09-15T07:38:45.630Z"
     },
     {
       "id": "usr_budi",
@@ -58,10 +58,39 @@
       "address": "Jl. Basuki Rahmat No. 45, Surabaya",
       "status": "Active",
       "createdAt": "2026-02-10T00:00:00.000Z",
-      "lastLogin": "2026-09-03T05:54:33.748Z"
+      "lastLogin": "2026-09-15T07:38:45.801Z"
+    },
+    {
+      "id": "usr_1789098462557_70qg",
+      "name": "Hirzi Dhiyaulhaq",
+      "email": "pklkesatu7166@gmail.com",
+      "phone": "089612345456",
+      "password": "$2b$10$9TNRUM48207TNroLiQrqvuFZ1Ss7IvEkKgWPo6wB69B.R8XhK6Ik2",
+      "photo": "https://picsum.photos/seed/1789098462557/100/100",
+      "agency": "Al-Haramain Travel",
+      "role": "Jamaah",
+      "region": "bandung",
+      "address": "Alamat Jemaah Hirzi Dhiyaulhaq",
+      "status": "Active",
+      "createdAt": "2026-09-11T03:47:42.557Z",
+      "lastLogin": null
     }
   ],
   "packages": [
+    {
+      "id": "PKG3591",
+      "name": "barbe",
+      "duration": 12,
+      "price": 35000000,
+      "airline": "Saudia Airlines",
+      "hotel": "5 Bintang",
+      "quota": 50,
+      "booked": 7,
+      "status": "Published",
+      "agencyEmail": "abdullah@alharamain.id",
+      "createdAt": "2026-09-11T03:19:23.591Z",
+      "updatedAt": "2026-09-11T03:20:04.622Z"
+    },
     {
       "id": "PKG01",
       "name": "Umroh Berkah Ramadhan",
@@ -116,6 +145,90 @@
     }
   ],
   "jamaah": [
+    {
+      "id": "JMH59699",
+      "name": "Jamaah Test Staff",
+      "phone": "0812345678",
+      "avatarUrl": "https://picsum.photos/seed/JMH59699/40/40",
+      "package": "Umroh Berkah Ramadhan",
+      "departureDate": "15 Mar 2026",
+      "status": "Booked",
+      "kloter": "Kloter A",
+      "agencyEmail": "siti@alharamain.id",
+      "createdAt": "2026-09-15T07:38:45.969Z"
+    },
+    {
+      "id": "JMH37322",
+      "name": "Jamaah Test Staff",
+      "phone": "0812345678",
+      "avatarUrl": "https://picsum.photos/seed/JMH37322/40/40",
+      "package": "Umroh Berkah Ramadhan",
+      "departureDate": "15 Mar 2026",
+      "status": "Booked",
+      "kloter": "Kloter A",
+      "agencyEmail": "siti@alharamain.id",
+      "createdAt": "2026-09-15T07:38:13.732Z"
+    },
+    {
+      "id": "JMH94731",
+      "name": "Jamaah Test Staff",
+      "phone": "0812345678",
+      "avatarUrl": "https://picsum.photos/seed/JMH94731/40/40",
+      "package": "Umroh Berkah Ramadhan",
+      "departureDate": "15 Mar 2026",
+      "status": "Booked",
+      "kloter": "Kloter A",
+      "agencyEmail": "siti@alharamain.id",
+      "createdAt": "2026-09-15T07:37:49.473Z"
+    },
+    {
+      "id": "JMH85935",
+      "name": "Jamaah Test Staff",
+      "phone": "0812345678",
+      "avatarUrl": "https://picsum.photos/seed/JMH85935/40/40",
+      "package": "Umroh Berkah Ramadhan",
+      "departureDate": "15 Mar 2026",
+      "status": "Booked",
+      "kloter": "Kloter A",
+      "agencyEmail": "siti@alharamain.id",
+      "createdAt": "2026-09-15T07:37:08.593Z"
+    },
+    {
+      "id": "JMH55881",
+      "name": "Jamaah Test Staff",
+      "phone": "0812345678",
+      "avatarUrl": "https://picsum.photos/seed/JMH55881/40/40",
+      "package": "Umroh Berkah Ramadhan",
+      "departureDate": "15 Mar 2026",
+      "status": "Booked",
+      "kloter": "Kloter A",
+      "agencyEmail": "siti@alharamain.id",
+      "createdAt": "2026-09-15T07:36:45.588Z"
+    },
+    {
+      "id": "JMH96757",
+      "name": "Jamaah Test Staff",
+      "phone": "0812345678",
+      "avatarUrl": "https://picsum.photos/seed/JMH96757/40/40",
+      "package": "Umroh Berkah Ramadhan",
+      "departureDate": "15 Mar 2026",
+      "status": "Booked",
+      "kloter": "Kloter A",
+      "agencyEmail": "siti@alharamain.id",
+      "createdAt": "2026-09-15T07:36:29.675Z"
+    },
+    {
+      "id": "JMH007",
+      "name": "Abdullah Al-Habsyi (+6 Keluarga)",
+      "phone": "+62 812-3456-7890",
+      "avatarUrl": "https://picsum.photos/seed/admin/100/100",
+      "package": "barbe",
+      "departureDate": "2026-06-15",
+      "status": "Booked",
+      "kloter": "Kloter B",
+      "agencyEmail": "abdullah@alharamain.id",
+      "createdAt": "2026-09-11T03:20:04.287Z"
+    },
     {
       "id": "JMH001",
       "name": "Ahmad Subagja",
@@ -184,6 +297,71 @@
     }
   ],
   "tasks": [
+    {
+      "id": "1789457926026",
+      "title": "Al-Haramain Operational Task",
+      "category": "Pre-Departure",
+      "dueDate": "2026-09-15",
+      "completed": true,
+      "assignee": "Abdullah",
+      "priority": "Medium",
+      "description": "",
+      "subtasks": [],
+      "kloter": "Kloter A",
+      "agencyEmail": "abdullah@alharamain.id"
+    },
+    {
+      "id": "1789457893802",
+      "title": "Al-Haramain Operational Task",
+      "category": "Pre-Departure",
+      "dueDate": "2026-09-15",
+      "completed": false,
+      "assignee": "Abdullah",
+      "priority": "Medium",
+      "description": "",
+      "subtasks": [],
+      "kloter": "Kloter A",
+      "agencyEmail": "abdullah@alharamain.id"
+    },
+    {
+      "id": "1789457869534",
+      "title": "Al-Haramain Operational Task",
+      "category": "Pre-Departure",
+      "dueDate": "2026-09-15",
+      "completed": false,
+      "assignee": "Abdullah",
+      "priority": "Medium",
+      "description": "",
+      "subtasks": [],
+      "kloter": "Kloter A",
+      "agencyEmail": "abdullah@alharamain.id"
+    },
+    {
+      "id": "1789457828647",
+      "title": "Al-Haramain Operational Task",
+      "category": "Pre-Departure",
+      "dueDate": "2026-09-15",
+      "completed": false,
+      "assignee": "Abdullah",
+      "priority": "Medium",
+      "description": "",
+      "subtasks": [],
+      "kloter": "Kloter A",
+      "agencyEmail": "abdullah@alharamain.id"
+    },
+    {
+      "id": "1789457805658",
+      "title": "Budi Task",
+      "category": "Pre-Departure",
+      "dueDate": "2026-09-15",
+      "completed": false,
+      "assignee": "Dr.",
+      "priority": "Medium",
+      "description": "",
+      "subtasks": [],
+      "kloter": "Kloter A",
+      "agencyEmail": "superadmin@travelops.com"
+    },
     {
       "id": "1",
       "title": "Submit Visa Applications",
@@ -381,6 +559,55 @@
       "ktp": "PENDING",
       "vaccine": "PENDING",
       "passportNumber": "A1234505"
+    },
+    "JMH007": {
+      "passport": "PENDING",
+      "visa": "PENDING",
+      "ktp": "SUBMITTED",
+      "vaccine": "PENDING",
+      "passportNumber": "A5349216"
+    },
+    "JMH96757": {
+      "passport": "PENDING",
+      "visa": "PENDING",
+      "ktp": "SUBMITTED",
+      "vaccine": "PENDING",
+      "passportNumber": "A1301736"
+    },
+    "JMH55881": {
+      "passport": "PENDING",
+      "visa": "PENDING",
+      "ktp": "SUBMITTED",
+      "vaccine": "PENDING",
+      "passportNumber": "A8111716"
+    },
+    "JMH85935": {
+      "passport": "PENDING",
+      "visa": "PENDING",
+      "ktp": "SUBMITTED",
+      "vaccine": "PENDING",
+      "passportNumber": "A8318474"
+    },
+    "JMH94731": {
+      "passport": "PENDING",
+      "visa": "PENDING",
+      "ktp": "SUBMITTED",
+      "vaccine": "PENDING",
+      "passportNumber": "A3992219"
+    },
+    "JMH37322": {
+      "passport": "PENDING",
+      "visa": "PENDING",
+      "ktp": "SUBMITTED",
+      "vaccine": "PENDING",
+      "passportNumber": "A4073771"
+    },
+    "JMH59699": {
+      "passport": "PENDING",
+      "visa": "PENDING",
+      "ktp": "SUBMITTED",
+      "vaccine": "PENDING",
+      "passportNumber": "A8169043"
     }
   },
   "notifications": [
@@ -419,6 +646,556 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log_1789531454324_tlfv",
+      "timestamp": "2026-09-16T04:04:14.324Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGOUT",
+      "details": "User Abdullah Al-Habsyi logged out.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789527501490_v786",
+      "timestamp": "2026-09-16T02:58:21.490Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "PROFILE_UPDATE",
+      "details": "User profile updated for abdullah@alharamain.id.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789527501216_10a6",
+      "timestamp": "2026-09-16T02:58:21.216Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "PROFILE_UPDATE",
+      "details": "User profile updated for abdullah@alharamain.id.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789527501120_8xv6",
+      "timestamp": "2026-09-16T02:58:21.120Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGIN",
+      "details": "User Abdullah Al-Habsyi logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457925989_2lc9",
+      "timestamp": "2026-09-15T07:38:45.989Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "CREATE_JAMAAH",
+      "details": "Registered new pilgrim Jamaah Test Staff (JMH59699) in Kloter A.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457925816_b6wx",
+      "timestamp": "2026-09-15T07:38:45.816Z",
+      "userId": "usr_budi",
+      "userName": "Budi Santoso",
+      "role": "Field Agent",
+      "action": "USER_LOGIN",
+      "details": "User Budi Santoso logged into Barokah Tour & Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457925647_7je5",
+      "timestamp": "2026-09-15T07:38:45.647Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "USER_LOGIN",
+      "details": "User Siti Aminah logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457925432_bj6s",
+      "timestamp": "2026-09-15T07:38:45.432Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGIN",
+      "details": "User Abdullah Al-Habsyi logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457925241_wj8n",
+      "timestamp": "2026-09-15T07:38:45.241Z",
+      "userId": "usr_superadmin",
+      "userName": "Dr. Faisal Al-Mansoor",
+      "role": "Super Admin",
+      "action": "USER_LOGIN",
+      "details": "User Dr. Faisal Al-Mansoor logged into TravelOps Global Headquarter.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457893754_fkpu",
+      "timestamp": "2026-09-15T07:38:13.754Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "CREATE_JAMAAH",
+      "details": "Registered new pilgrim Jamaah Test Staff (JMH37322) in Kloter A.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457893585_5n9b",
+      "timestamp": "2026-09-15T07:38:13.585Z",
+      "userId": "usr_budi",
+      "userName": "Budi Santoso",
+      "role": "Field Agent",
+      "action": "USER_LOGIN",
+      "details": "User Budi Santoso logged into Barokah Tour & Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457893412_0ta2",
+      "timestamp": "2026-09-15T07:38:13.412Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "USER_LOGIN",
+      "details": "User Siti Aminah logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457893182_kv5x",
+      "timestamp": "2026-09-15T07:38:13.183Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGIN",
+      "details": "User Abdullah Al-Habsyi logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457892986_5rwf",
+      "timestamp": "2026-09-15T07:38:12.986Z",
+      "userId": "usr_superadmin",
+      "userName": "Dr. Faisal Al-Mansoor",
+      "role": "Super Admin",
+      "action": "USER_LOGIN",
+      "details": "User Dr. Faisal Al-Mansoor logged into TravelOps Global Headquarter.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457869495_cmni",
+      "timestamp": "2026-09-15T07:37:49.495Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "CREATE_JAMAAH",
+      "details": "Registered new pilgrim Jamaah Test Staff (JMH94731) in Kloter A.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457869336_q3hm",
+      "timestamp": "2026-09-15T07:37:49.336Z",
+      "userId": "usr_budi",
+      "userName": "Budi Santoso",
+      "role": "Field Agent",
+      "action": "USER_LOGIN",
+      "details": "User Budi Santoso logged into Barokah Tour & Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457869158_nl98",
+      "timestamp": "2026-09-15T07:37:49.158Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "USER_LOGIN",
+      "details": "User Siti Aminah logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457868950_y3es",
+      "timestamp": "2026-09-15T07:37:48.950Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGIN",
+      "details": "User Abdullah Al-Habsyi logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457868776_xaif",
+      "timestamp": "2026-09-15T07:37:48.776Z",
+      "userId": "usr_superadmin",
+      "userName": "Dr. Faisal Al-Mansoor",
+      "role": "Super Admin",
+      "action": "USER_LOGIN",
+      "details": "User Dr. Faisal Al-Mansoor logged into TravelOps Global Headquarter.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457828613_fa11",
+      "timestamp": "2026-09-15T07:37:08.613Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "CREATE_JAMAAH",
+      "details": "Registered new pilgrim Jamaah Test Staff (JMH85935) in Kloter A.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457828468_ivwj",
+      "timestamp": "2026-09-15T07:37:08.468Z",
+      "userId": "usr_budi",
+      "userName": "Budi Santoso",
+      "role": "Field Agent",
+      "action": "USER_LOGIN",
+      "details": "User Budi Santoso logged into Barokah Tour & Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457828263_gnem",
+      "timestamp": "2026-09-15T07:37:08.263Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "USER_LOGIN",
+      "details": "User Siti Aminah logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457827927_567t",
+      "timestamp": "2026-09-15T07:37:07.927Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGIN",
+      "details": "User Abdullah Al-Habsyi logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457827751_eoyg",
+      "timestamp": "2026-09-15T07:37:07.751Z",
+      "userId": "usr_superadmin",
+      "userName": "Dr. Faisal Al-Mansoor",
+      "role": "Super Admin",
+      "action": "USER_LOGIN",
+      "details": "User Dr. Faisal Al-Mansoor logged into TravelOps Global Headquarter.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457805608_gjuj",
+      "timestamp": "2026-09-15T07:36:45.608Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "CREATE_JAMAAH",
+      "details": "Registered new pilgrim Jamaah Test Staff (JMH55881) in Kloter A.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457805443_oqxd",
+      "timestamp": "2026-09-15T07:36:45.443Z",
+      "userId": "usr_budi",
+      "userName": "Budi Santoso",
+      "role": "Field Agent",
+      "action": "USER_LOGIN",
+      "details": "User Budi Santoso logged into Barokah Tour & Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457805264_re1s",
+      "timestamp": "2026-09-15T07:36:45.264Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "USER_LOGIN",
+      "details": "User Siti Aminah logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457805030_eaz7",
+      "timestamp": "2026-09-15T07:36:45.030Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGIN",
+      "details": "User Abdullah Al-Habsyi logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457804849_xes7",
+      "timestamp": "2026-09-15T07:36:44.849Z",
+      "userId": "usr_superadmin",
+      "userName": "Dr. Faisal Al-Mansoor",
+      "role": "Super Admin",
+      "action": "USER_LOGIN",
+      "details": "User Dr. Faisal Al-Mansoor logged into TravelOps Global Headquarter.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457789695_hpff",
+      "timestamp": "2026-09-15T07:36:29.695Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "CREATE_JAMAAH",
+      "details": "Registered new pilgrim Jamaah Test Staff (JMH96757) in Kloter A.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457789506_o8zv",
+      "timestamp": "2026-09-15T07:36:29.506Z",
+      "userId": "usr_budi",
+      "userName": "Budi Santoso",
+      "role": "Field Agent",
+      "action": "USER_LOGIN",
+      "details": "User Budi Santoso logged into Barokah Tour & Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457789310_biqo",
+      "timestamp": "2026-09-15T07:36:29.310Z",
+      "userId": "usr_siti",
+      "userName": "Siti Aminah",
+      "role": "Ops Staff",
+      "action": "USER_LOGIN",
+      "details": "User Siti Aminah logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457789084_r3me",
+      "timestamp": "2026-09-15T07:36:29.084Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGIN",
+      "details": "User Abdullah Al-Habsyi logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789457788889_v8ql",
+      "timestamp": "2026-09-15T07:36:28.889Z",
+      "userId": "usr_superadmin",
+      "userName": "Dr. Faisal Al-Mansoor",
+      "role": "Super Admin",
+      "action": "USER_LOGIN",
+      "details": "User Dr. Faisal Al-Mansoor logged into TravelOps Global Headquarter.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789115830706_egad",
+      "timestamp": "2026-09-11T08:37:10.706Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGOUT",
+      "details": "User Abdullah Al-Habsyi logged out.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789115827747_tc6t",
+      "timestamp": "2026-09-11T08:37:07.747Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "PROFILE_UPDATE",
+      "details": "User profile updated for abdullah@alharamain.id.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789115827671_9rxi",
+      "timestamp": "2026-09-11T08:37:07.671Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "PROFILE_UPDATE",
+      "details": "User profile updated for abdullah@alharamain.id.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789115827304_q005",
+      "timestamp": "2026-09-11T08:37:07.304Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGIN",
+      "details": "User Abdullah Al-Habsyi logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789110232595_in9l",
+      "timestamp": "2026-09-11T07:03:52.595Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGOUT",
+      "details": "User Abdullah Al-Habsyi logged out.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789110218415_awwr",
+      "timestamp": "2026-09-11T07:03:38.415Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "PROFILE_UPDATE",
+      "details": "User profile updated for abdullah@alharamain.id.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789110218367_xsyx",
+      "timestamp": "2026-09-11T07:03:38.367Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "PROFILE_UPDATE",
+      "details": "User profile updated for abdullah@alharamain.id.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789110218181_2dma",
+      "timestamp": "2026-09-11T07:03:38.181Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGIN",
+      "details": "User Abdullah Al-Habsyi logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789098484226_1b6k",
+      "timestamp": "2026-09-11T03:48:04.226Z",
+      "userId": "usr_1789098462557_70qg",
+      "userName": "Hirzi Dhiyaulhaq",
+      "role": "Jamaah",
+      "action": "USER_LOGOUT",
+      "details": "User Hirzi Dhiyaulhaq logged out.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789098462577_sjsu",
+      "timestamp": "2026-09-11T03:47:42.577Z",
+      "userId": "usr_1789098462557_70qg",
+      "userName": "Hirzi Dhiyaulhaq",
+      "role": "Jamaah",
+      "action": "USER_REGISTER",
+      "details": "New agency account registered for Al-Haramain Travel (pklkesatu7166@gmail.com).",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789097128253_6h7w",
+      "timestamp": "2026-09-11T03:25:28.253Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGOUT",
+      "details": "User Abdullah Al-Habsyi logged out.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789097089765_0j5i",
+      "timestamp": "2026-09-11T03:24:49.765Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGIN",
+      "details": "User Abdullah Al-Habsyi logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789096830951_p6vs",
+      "timestamp": "2026-09-11T03:20:30.951Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGOUT",
+      "details": "User Abdullah Al-Habsyi logged out.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789096804327_hz8u",
+      "timestamp": "2026-09-11T03:20:04.327Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "CREATE_JAMAAH",
+      "details": "Registered new pilgrim Abdullah Al-Habsyi (+6 Keluarga) (JMH007) in Kloter B.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789096763640_cgpt",
+      "timestamp": "2026-09-11T03:19:23.640Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "CREATE_PACKAGE",
+      "details": "Created package \"barbe\" (PKG3591).",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
+    {
+      "id": "log_1789096748091_x6lw",
+      "timestamp": "2026-09-11T03:19:08.091Z",
+      "userId": "usr_abdullah",
+      "userName": "Abdullah Al-Habsyi",
+      "role": "Travel Admin",
+      "action": "USER_LOGIN",
+      "details": "User Abdullah Al-Habsyi logged into Al-Haramain Travel.",
+      "ipAddress": "127.0.0.1",
+      "status": "SUCCESS"
+    },
     {
       "id": "log_1788415384448_kack",
       "timestamp": "2026-09-03T06:03:04.448Z",

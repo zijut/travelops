@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../AppContext';
 import { Card } from './shared/Card';
 import { Icon } from './shared/Icon';
@@ -88,17 +88,32 @@ const Profile: React.FC = () => {
 
   // Local Form state
   const [formData, setFormData] = useState({
-    name: userProfile.name,
-    email: userProfile.email,
-    phone: userProfile.phone,
+    name: userProfile.name || '',
+    email: userProfile.email || '',
+    phone: userProfile.phone || '',
     password: userProfile.password || '',
     passwordConfirm: userProfile.password || '',
     agency: userProfile.agency || '',
     role: userProfile.role || '',
     region: userProfile.region || '',
     address: userProfile.address || '',
-    photo: userProfile.photo
+    photo: userProfile.photo || 'https://picsum.photos/seed/admin/40/40'
   });
+
+  useEffect(() => {
+    setFormData({
+      name: userProfile.name || '',
+      email: userProfile.email || '',
+      phone: userProfile.phone || '',
+      password: userProfile.password || '',
+      passwordConfirm: userProfile.password || '',
+      agency: userProfile.agency || '',
+      role: userProfile.role || '',
+      region: userProfile.region || '',
+      address: userProfile.address || '',
+      photo: userProfile.photo || 'https://picsum.photos/seed/admin/40/40'
+    });
+  }, [userProfile]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -197,7 +212,7 @@ const Profile: React.FC = () => {
             <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-widest">
               {t.photoLabel}
             </h3>
-            <p className="text-[11px] text-slate-405 dark:text-slate-400 leading-relaxed max-w-sm">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm">
               {t.uploadHint}
             </p>
             <input
@@ -431,7 +446,7 @@ const Profile: React.FC = () => {
               </>
             ) : (
               <>
-                <svg className="h-4 w-4 text-emerald-250" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg className="h-4 w-4 text-emerald-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <span>{t.saveBtn}</span>

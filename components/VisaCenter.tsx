@@ -3,6 +3,7 @@ import { Card } from './shared/Card';
 import { Icon } from './shared/Icon';
 import { useApp } from '../AppContext';
 import { JamaahStatus, Jamaah } from '../types';
+import { visaApi } from '../services/api';
 
 interface VisaDocumentState {
   passport: 'PENDING' | 'SUBMITTED' | 'VERIFIED' | 'REJECTED';
@@ -50,22 +51,22 @@ const LOCAL_TRANSLATIONS = {
     filterStatus: 'Status Filter',
     totalVisa: 'Total Applications',
     visaApproved: 'Visa Approved',
-    visaPending: 'Visa Pending',
+    visaPending: 'Visa Processing',
     visaRejected: 'Visa Rejected',
-    noData: 'No visa files matching search criteria.',
-    jamaahName: 'Pilgrim & Passport Info',
+    noData: 'No visa records found.',
+    jamaahName: 'Pilgrim Name & Passport',
     kloter: 'Group / Package',
     passport: 'Passport',
     visa: 'Umrah Visa',
-    ktp: 'ID Card (KTP)',
+    ktp: 'ID Card',
     vaccine: 'Vaccine',
     action: 'Actions',
     autoClear: 'Muqeem Clearance',
     downloadEVisa: 'E-Visa PDF',
     uploadScan: 'Upload Scan',
     verifyAll: 'Verify All',
-    toastCleared: 'Visa application for {name} approved successfully on Muqeem Portal!',
-    toastDocUploaded: 'Document scan uploaded successfully for {name}!',
+    toastCleared: 'Visa application for {name} approved via Muqeem portal!',
+    toastDocUploaded: 'Document scan successfully uploaded for {name}!',
     toastDownload: 'Downloading E-Visa document for {name}...',
     exportLabel: 'Export Manifest',
     processing: 'Processing...',
@@ -74,71 +75,26 @@ const LOCAL_TRANSLATIONS = {
 };
 
 const VisaCenter: React.FC = () => {
-  const { jamaahList, setJamaahList, isDarkMode, language, triggerToast, currentUser } = useApp();
+  const { isDarkMode, language, jamaahList, setJamaahList, currentUser, triggerToast } = useApp();
   const t = LOCAL_TRANSLATIONS[language];
+
   const currentEmail = currentUser?.email || '';
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedKloter, setSelectedKloter] = useState<string>('ALL');
-  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [selectedKloter, setSelectedKloter] = useState('ALL');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
+
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  // Load document status registry from local storage or seed
-  const [docRegistry, setDocRegistry] = useState<{ [id: string]: VisaDocumentState }>(() => {
-    if (!currentEmail) return {};
-    const saved = localStorage.getItem(`travelops_visa_documents_v2_${currentEmail}`);
-    if (saved) return JSON.parse(saved);
+  const [docRegistry, setDocRegistry] = useState<{ [id: string]: VisaDocumentState }>({});
 
-    // Initial seeding based on existing jamaahList
-    const initial: { [id: string]: VisaDocumentState } = {};
-    if (currentEmail === 'abdullah@alharamain.id') {
-      jamaahList.forEach((j, index) => {
-        const isApproved = j.status === JamaahStatus.VISA_APPROVED || j.status === JamaahStatus.DEPARTED || j.status === JamaahStatus.RETURNED;
-        initial[j.id] = {
-          passport: isApproved ? 'VERIFIED' : (index % 3 === 0 ? 'SUBMITTED' : 'PENDING'),
-          visa: isApproved ? 'VERIFIED' : 'PENDING',
-          ktp: 'VERIFIED',
-          vaccine: isApproved ? 'VERIFIED' : (index % 2 === 0 ? 'VERIFIED' : 'PENDING'),
-          passportNumber: `A${1234500 + index}`
-        };
-      });
-    }
-    return initial;
-  });
-
-  // Reload registry when user changes
   useEffect(() => {
-    if (currentEmail) {
-      const saved = localStorage.getItem(`travelops_visa_documents_v2_${currentEmail}`);
-      if (saved) {
-        setDocRegistry(JSON.parse(saved));
-      } else {
-        const initial: { [id: string]: VisaDocumentState } = {};
-        if (currentEmail === 'abdullah@alharamain.id') {
-          jamaahList.forEach((j, index) => {
-            const isApproved = j.status === JamaahStatus.VISA_APPROVED || j.status === JamaahStatus.DEPARTED || j.status === JamaahStatus.RETURNED;
-            initial[j.id] = {
-              passport: isApproved ? 'VERIFIED' : (index % 3 === 0 ? 'SUBMITTED' : 'PENDING'),
-              visa: isApproved ? 'VERIFIED' : 'PENDING',
-              ktp: 'VERIFIED',
-              vaccine: isApproved ? 'VERIFIED' : (index % 2 === 0 ? 'VERIFIED' : 'PENDING'),
-              passportNumber: `A${1234500 + index}`
-            };
-          });
-        }
-        setDocRegistry(initial);
+    visaApi.getAll().then(res => {
+      if (res.success && res.visaRecords) {
+        setDocRegistry(res.visaRecords as { [id: string]: VisaDocumentState });
       }
-    } else {
-      setDocRegistry({});
-    }
+    }).catch(() => {});
   }, [currentEmail, jamaahList]);
-
-  // Sync to local storage
-  useEffect(() => {
-    if (currentEmail) {
-      localStorage.setItem(`travelops_visa_documents_v2_${currentEmail}`, JSON.stringify(docRegistry));
-    }
-  }, [docRegistry, currentEmail]);
 
   // Handle document state change
   const handleDocStatusChange = (
@@ -147,13 +103,19 @@ const VisaCenter: React.FC = () => {
     newStatus: 'PENDING' | 'SUBMITTED' | 'VERIFIED' | 'REJECTED'
   ) => {
     setDocRegistry(prev => {
-      const updated = {
-        ...prev,
-        [jamaahId]: {
-          ...prev[jamaahId],
-          [docType]: newStatus
-        }
+      const currentDoc = prev[jamaahId] || {
+        passport: 'PENDING',
+        visa: 'PENDING',
+        ktp: 'VERIFIED',
+        vaccine: 'PENDING',
+        passportNumber: `A${Math.floor(1000000 + Math.random() * 9000000)}`
       };
+      const updatedDoc = {
+        ...currentDoc,
+        [docType]: newStatus
+      };
+
+      visaApi.update(jamaahId, updatedDoc).catch(console.error);
 
       // Automatically sync JamaahStatus state if visa is verified
       if (docType === 'visa' && newStatus === 'VERIFIED') {
@@ -168,7 +130,10 @@ const VisaCenter: React.FC = () => {
         }
       }
 
-      return updated;
+      return {
+        ...prev,
+        [jamaahId]: updatedDoc
+      };
     });
   };
 

@@ -92,7 +92,7 @@ const OpsBot: React.FC<OpsBotProps> = ({ isOpen, setIsOpen, onCommand }) => {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder="Ketik 'Add task...' atau tanya apa saja"
                 className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all"
               />
