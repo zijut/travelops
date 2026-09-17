@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useApp } from '../AppContext';
+import { useApp, getDashboardPathForRole } from '../AppContext';
 
 type PortalMode = 'admin' | 'jamaah';
 type JamaahLoginMethod = 'email' | 'passport';
@@ -24,6 +24,19 @@ const Login: React.FC = () => {
   const [passportOrBooking, setPassportOrBooking] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Helper for dynamic role-based redirect
+  const handleSuccessRedirect = (userObj?: any) => {
+    const targetPath = getDashboardPathForRole(userObj?.role);
+    if (targetPath) {
+      triggerToast(t.toastSuccess, 'success');
+      navigate(targetPath);
+    } else {
+      const roleErrMsg = language === 'id' ? 'Role akun tidak dikenali.' : 'Unrecognized user role.';
+      setLoginError(roleErrMsg);
+      triggerToast(roleErrMsg, 'error');
+    }
+  };
 
   const t = {
     id: {
@@ -99,8 +112,7 @@ const Login: React.FC = () => {
     const res = await login('abdullah@alharamain.id', 'AlHaramain2026!');
     setIsLoading(false);
     if (res.success) {
-      triggerToast(t.toastSuccess, 'success');
-      navigate('/dashboard');
+      handleSuccessRedirect(res.user);
     } else {
       triggerToast(t.toastFailed, 'error');
     }
@@ -116,8 +128,7 @@ const Login: React.FC = () => {
     const res = await login('ahmad.subagja@gmail.com', 'Jamaah2026!');
     setIsLoading(false);
     if (res.success) {
-      triggerToast(t.toastSuccess, 'success');
-      navigate('/user/dashboard');
+      handleSuccessRedirect(res.user);
     } else {
       triggerToast(t.toastFailed, 'error');
     }
@@ -133,8 +144,7 @@ const Login: React.FC = () => {
     const res = await login('siti.aminah@gmail.com', 'Jamaah2026!');
     setIsLoading(false);
     if (res.success) {
-      triggerToast(t.toastSuccess, 'success');
-      navigate('/user/dashboard');
+      handleSuccessRedirect(res.user);
     } else {
       triggerToast(t.toastFailed, 'error');
     }
@@ -155,8 +165,7 @@ const Login: React.FC = () => {
       const res = await login(email.trim(), password);
       setIsLoading(false);
       if (res.success) {
-        triggerToast(t.toastSuccess, 'success');
-        navigate('/dashboard');
+        handleSuccessRedirect(res.user);
       } else if (res.reason === 'NOT_FOUND') {
         setUnregisteredQuery(email.trim());
         triggerToast(
@@ -184,8 +193,7 @@ const Login: React.FC = () => {
         const res = await login(email.trim(), password);
         setIsLoading(false);
         if (res.success) {
-          triggerToast(t.toastSuccess, 'success');
-          navigate('/user/dashboard');
+          handleSuccessRedirect(res.user);
         } else if (res.reason === 'NOT_FOUND') {
           setUnregisteredQuery(email.trim());
           triggerToast(
@@ -212,8 +220,7 @@ const Login: React.FC = () => {
         const res = await loginJamaahByPassport(passportOrBooking.trim(), password);
         setIsLoading(false);
         if (res.success) {
-          triggerToast(t.toastSuccess, 'success');
-          navigate('/user/dashboard');
+          handleSuccessRedirect(res.user);
         } else if (res.reason === 'NOT_FOUND') {
           setUnregisteredQuery(passportOrBooking.trim());
           triggerToast(

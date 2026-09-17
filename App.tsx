@@ -32,10 +32,10 @@ import { UserBottomBar } from './components/user/UserBottomBar';
 
 import { OpsTask } from './types';
 import { MOCK_TASKS } from './constants';
-import { useApp } from './AppContext';
+import { useApp, getDashboardPathForRole } from './AppContext';
 
 const pathToView: Record<string, string> = {
-  // Admin routes
+  // Admin & Staff routes
   '/dashboard': 'Dashboard',
   '/paket': 'Paket & Penjualan',
   '/jamaah': 'Jamaah',
@@ -58,7 +58,7 @@ const pathToView: Record<string, string> = {
 };
 
 const viewToPath: Record<string, string> = {
-  // Admin views
+  // Admin & Staff views
   'Dashboard': '/dashboard',
   'Paket & Penjualan': '/paket',
   'Jamaah': '/jamaah',
@@ -85,12 +85,13 @@ const App: React.FC = () => {
   const navigate = useNavigate();
 
   // AppContext values
-  const { isDarkMode, toast, closeToast, currentUser, userProfile, isAdmin, isJamaah, previewMode, setPreviewMode } = useApp();
+  const { isDarkMode, toast, closeToast, currentUser, userProfile, isAdmin, isStaff, isJamaah, previewMode, setPreviewMode, triggerToast } = useApp();
 
-  const activeView = pathToView[location.pathname] || (isJamaah ? 'Ringkasan Perjalanan' : 'Dashboard');
+  const activeView = pathToView[location.pathname] || (isJamaah ? 'Ringkasan Perjalanan' : (isStaff ? 'Operasional' : 'Dashboard'));
 
   const setActiveView = (view: string) => {
-    const path = viewToPath[view] || (isJamaah ? '/user/dashboard' : '/dashboard');
+    const defaultPath = isJamaah ? '/user/dashboard' : (isStaff ? '/operasional' : '/dashboard');
+    const path = viewToPath[view] || defaultPath;
     navigate(path);
   };
 
@@ -103,26 +104,35 @@ const App: React.FC = () => {
         navigate('/', { replace: true });
       }
     } else {
+      const defaultDashboard = getDashboardPathForRole(currentUser.role);
+      
+      if (!defaultDashboard) {
+        triggerToast('Role akun tidak dikenali.', 'error');
+        navigate('/', { replace: true });
+        return;
+      }
+
       // Authenticated User Routing
       if (isPublicPath) {
-        if (isJamaah) {
-          navigate('/user/dashboard', { replace: true });
-        } else {
-          navigate('/dashboard', { replace: true });
-        }
+        navigate(defaultDashboard, { replace: true });
       } else if (isJamaah) {
-        // If logged in as Jamaah but tries to access Admin route, redirect to User dashboard
+        // Jamaah can ONLY access /user/* routes. Block admin route access.
         if (!location.pathname.startsWith('/user/')) {
           navigate('/user/dashboard', { replace: true });
         }
+      } else if (isStaff) {
+        // Staff/Field Agent default to /operasional if on invalid route
+        if (!pathToView[location.pathname] && !location.pathname.startsWith('/user/')) {
+          navigate('/operasional', { replace: true });
+        }
       } else if (isAdmin) {
         // Admin user can navigate to admin routes or user preview routes
-        if (!pathToView[location.pathname]) {
+        if (!pathToView[location.pathname] && !location.pathname.startsWith('/user/')) {
           navigate('/dashboard', { replace: true });
         }
       }
     }
-  }, [location.pathname, currentUser, isJamaah, isAdmin, navigate]);
+  }, [location.pathname, currentUser, isJamaah, isStaff, isAdmin, navigate]);
 
   const [isBotOpen, setIsBotOpen] = useState(false);
 

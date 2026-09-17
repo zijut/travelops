@@ -36,10 +36,21 @@ export interface AppSettings {
   enableToast: boolean;
 }
 
+export function getDashboardPathForRole(role?: string): string | null {
+  if (!role) return null;
+  const r = role.trim().toLowerCase();
+  if (r === 'super admin' || r === 'superadmin') return '/dashboard';
+  if (r === 'travel admin' || r === 'traveladmin' || r === 'admin') return '/dashboard';
+  if (r === 'ops staff' || r === 'opsstaff' || r === 'staff' || r === 'field agent' || r === 'fieldagent' || r === 'agent') return '/operasional';
+  if (r === 'jamaah' || r === 'jemaah' || r === 'user' || r === 'customer') return '/user/dashboard';
+  return null;
+}
+
 export type LoginResult = {
   success: boolean;
-  reason?: 'NOT_FOUND' | 'WRONG_PASSWORD' | 'SUSPENDED' | 'FAILED';
+  reason?: 'NOT_FOUND' | 'WRONG_PASSWORD' | 'SUSPENDED' | 'FAILED' | 'INVALID_ROLE';
   message?: string;
+  user?: UserProfile;
 };
 
 interface AppContextType {
@@ -75,6 +86,7 @@ interface AppContextType {
   updateActiveJamaah: (updated: Partial<Jamaah>) => void;
   bookPackageAsUser: (packageId: string, paxCount: number, notes?: string, customName?: string) => boolean | Promise<boolean>;
   isAdmin: boolean;
+  isStaff: boolean;
   isJamaah: boolean;
   previewMode: boolean;
   setPreviewMode: (val: boolean) => void;
@@ -155,8 +167,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const currentEmail = currentUser?.email || '';
-  const isAdmin = currentUser?.role === 'Travel Admin' || currentUser?.role === 'Super Admin' || currentUser?.role === 'Ops Staff';
-  const isJamaah = currentUser?.role === 'Jamaah' || currentUser?.role === 'User';
+  const normalizedRole = currentUser?.role ? currentUser.role.trim().toLowerCase() : '';
+  const isAdmin = ['super admin', 'superadmin', 'travel admin', 'traveladmin', 'admin'].includes(normalizedRole);
+  const isStaff = ['ops staff', 'opsstaff', 'staff', 'field agent', 'fieldagent', 'agent'].includes(normalizedRole);
+  const isJamaah = ['jamaah', 'jemaah', 'user', 'customer'].includes(normalizedRole);
 
   // Theme state
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -360,12 +374,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const res = await authApi.login({ email: cleanEmail, password });
       if (res.success && res.user && res.token) {
+        localStorage.removeItem('travelops_current_user');
+        localStorage.removeItem('travelops_token');
+        localStorage.setItem('travelops_token', res.token);
         setCurrentUser(res.user);
         setUserProfile(res.user);
         setPreviewMode(false);
         localStorage.setItem('travelops_current_user', JSON.stringify(res.user));
         await refreshData();
-        return { success: true };
+        return { success: true, user: res.user };
       }
     } catch (err: any) {
       const errMsg = err?.message || '';
@@ -405,11 +422,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
     }
 
+    localStorage.removeItem('travelops_current_user');
     setCurrentUser(matched);
     setUserProfile(matched);
     setPreviewMode(false);
     localStorage.setItem('travelops_current_user', JSON.stringify(matched));
-    return { success: true };
+    return { success: true, user: matched };
   };
 
   const loginJamaahByPassport = async (passportOrBooking: string, passwordOrPin?: string): Promise<LoginResult> => {
@@ -456,20 +474,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const res = await authApi.login({ email: userRecord.email, password: passwordOrPin || 'Jamaah2026!' });
       if (res.success && res.user) {
+        localStorage.removeItem('travelops_current_user');
+        localStorage.removeItem('travelops_token');
+        if (res.token) localStorage.setItem('travelops_token', res.token);
         setCurrentUser(res.user);
         setUserProfile(res.user);
         setActiveJamaah(matchedJamaah);
         setPreviewMode(false);
-        return { success: true };
+        return { success: true, user: res.user };
       }
     } catch (e) {}
 
+    localStorage.removeItem('travelops_current_user');
     setCurrentUser(userRecord);
     setUserProfile(userRecord);
     setActiveJamaah(matchedJamaah);
     setPreviewMode(false);
     localStorage.setItem('travelops_current_user', JSON.stringify(userRecord));
-    return { success: true };
+    return { success: true, user: userRecord };
   };
 
   const registerUser = async (newUser: UserProfile) => {
@@ -672,6 +694,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateActiveJamaah,
       bookPackageAsUser,
       isAdmin,
+      isStaff,
       isJamaah,
       previewMode,
       setPreviewMode,
